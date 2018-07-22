@@ -11,7 +11,7 @@
 	"AutoloadNamespaces": {
 		"MediaWiki\\Extension\\MABS\\Tests\\" : "tests/phpunit/",
 		"MediaWiki\\Extension\\MABS\\" : "src/",
-		"MediaWiki\\Extension\\MABS\\Special" : "src/special"
+		"MediaWiki\\Extension\\MABS\\Special\\" : "src/special"
 	},
 	"config": {
 	},
