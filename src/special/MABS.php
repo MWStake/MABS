@@ -7,6 +7,9 @@
  */
 namespace MediaWiki\Extension\MABS\Special;
 
+use SpecialPage;
+use HTMLForm;
+
 class MABS extends SpecialPage {
 	public function __construct() {
 		parent::__construct( 'mabs' );
