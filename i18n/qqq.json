@@ -1,0 +1,16 @@
+{
+	"@metadata": {
+		"authors": [
+			"Shirayuki",
+			"Umherirrender",
+			"Amire80",
+			"Fhocutt",
+			"Liuxinyu970226"
+		]
+	},
+	"mabs-desc": "{{desc|name=MABS|url=https://github.com/hexmode/mabs }}",
+	"mabs-i18n-welcome": "Used to greet the user when reading the i18n/??.json file.",
+	"mabs-setup": "Page title of the MABS setup special page.",
+	"mabs-setup-intro": "Text displayed on the MABS setup SpecialPage.",
+	"mabs": "Text of the link to the MABS setupspecial page on SpecialPages."
+}

@@ -1,0 +1,10 @@
+{
+	"@metadata": {
+		"authors": []
+	},
+	"mabs-desc": "Multilateral Asynchronous Bilateral Synchronisation",
+	"mabs-i18n-welcome": "Welcome to the localization file of the MABS extension.",
+	"mabs-mabs": "Set up MABS!",
+	"mabs-mabs-intro": "Welcome to the \"MABS\" configuration page.",
+	"mabs": "MABS Setup"
+}

@@ -1,0 +1,48 @@
+{
+	"name": "MABS",
+	"version": "0.1.0",
+	"author": [
+		"Mark A. Hershberger"
+	],
+	"url": "https://github.com/hexmode/mabs",
+	"descriptionmsg": "mabs-desc",
+	"license-name": "GPL v2",
+	"type": "specialpage",
+	"AutoloadNamespaces": {
+		"MediaWiki\\Extension\\MABS\\Tests\\" : "tests/phpunit/",
+		"MediaWiki\\Extension\\MABS\\" : "src/",
+		"MediaWiki\\Extension\\MABS\\Special" : "src/special"
+	},
+	"config": {
+	},
+	"ExtensionMessagesFiles": {
+		"MABSAlias": "src/i18n/Alias.php"
+	},
+	"Hooks": {
+	},
+	"MessagesDirs": {
+		"MABS": [
+			"i18n"
+		]
+	},
+	"ResourceModules": {
+		"ext.mabs": {
+			"scripts": [
+				"modules/ext.mabs.js"
+			],
+			"styles": [
+				"modules/ext.mabs.css"
+			],
+			"messages": [],
+			"dependencies": []
+		}
+	},
+	"ResourceFileModulePaths": {
+		"localBasePath": "",
+		"remoteExtPath": "MABS"
+	},
+	"SpecialPages": {
+		"MABS": "MediaWiki\\Extension\\MABS\\Special\\MABS"
+	},
+	"manifest_version": 2
+}
