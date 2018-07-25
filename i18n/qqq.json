@@ -8,9 +8,22 @@
 			"Liuxinyu970226"
 		]
 	},
-	"mabs-desc": "{{desc|name=MABS|url=https://github.com/hexmode/mabs }}",
-	"mabs-i18n-welcome": "Used to greet the user when reading the i18n/??.json file.",
+	"mabs-desc": "{{desc|name=MABS|url=https://github.com/hexmode/MABS }}",
 	"mabs-setup": "Page title of the MABS setup special page.",
 	"mabs-setup-intro": "Text displayed on the MABS setup SpecialPage.",
-	"mabs": "Text of the link to the MABS setupspecial page on SpecialPages."
+	"mabs-i18n-welcome": "Used to greet the user when reading the i18n/??.json file.",
+	"mabs": "Text of the link to the MABS setupspecial page on SpecialPages.",
+	"mabs-repoform-branchname": "Form field name",
+	"mabs-repo-depo": "Description of Repo configurable",
+	"repoform-mabs-config-prepare-section": "Header of form to prepare repository",
+	"mabs-config-please-fix-exists": "Message to display if the repository does not exist.",
+	"mabs-config-please-fix-directory": "Message to display if the repository path is not a directory.",
+	"mabs-config-please-fix-writable": "Message to display if the repository path is not writable.",
+	"repoform-mabs-config-initialize-section": "Header of form just before initialization.",
+	"mabs-config-gitdir-not-writable": "Message to display if the dot-git directory in the repository is not writable",
+	"mabs-config-not-exists": "Message to display if the config file does not exist.  Tell the user we're reaedy to initialize",
+	"mabs-config-not-writable": "Message to display if the config file is not writable.",
+	"mabs-config-create": "Message to display on the button that the user will click to perform some action",
+	"mabs-config-try-again": "Message to display on the button to indicate that the user needs to do something before trying again.",
+	"mabs-config-fix-problems": "Help message clarifying that the user has to fix some things in the system first."
 }

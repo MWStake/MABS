@@ -4,7 +4,20 @@
 	},
 	"mabs-desc": "Multilateral Asynchronous Bilateral Synchronisation",
 	"mabs-i18n-welcome": "Welcome to the localization file of the MABS extension.",
-	"mabs-mabs": "Set up MABS!",
-	"mabs-mabs-intro": "Welcome to the \"MABS\" configuration page.",
-	"mabs": "MABS Setup"
+	"mabs-setup": "Set up MABS!",
+	"mabs-setup-intro": "Welcome to the MABS configuration page.\n\nTo set up MABS, you need to make sure the repository directory is exists and is writable by the webserver.  To change the repository directory, set <tt>$MABSrepo</tt> in your <tt>LocalSettings.php</tt> file",
+	"mabs": "Wiki synchronisation",
+	"mabs-repoform-branchname": "Branch name",
+	"mabs-repo-depo": "Path relateive to the wiki-root to the MABS repository",
+	"repoform-mabs-config-prepare-section": "Prepare the repository",
+	"mabs-config-please-fix-exists": "The repository directory ($1) '''does not exist'''.",
+	"mabs-config-please-fix-directory": "The repository ($1) '''is not a directory'''.",
+	"mabs-config-please-fix-writable": "The repository directory ($1) '''is not writable'''.",
+	"mabs-config-gitdir-not-writable": "The git directory ($1) exists, but is not writable.",
+	"mabs-config-not-exists": "The config file ($2) does not exist.  The repository needs to be initialized",
+	"mabs-config-not-writable": "The config file ($2) is not writable.  Please make it writable.",
+	"repoform-mabs-config-initialize-section": "Initialize the repository",
+	"mabs-config-create": "Do it",
+	"mabs-config-try-again": "Try again",
+	"mabs-config-fix-problems": "Please fix these problems before continuing. When you think they are fixed, submit this form."
 }

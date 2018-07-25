@@ -13,8 +13,6 @@
 		"MediaWiki\\Extension\\MABS\\" : "src/",
 		"MediaWiki\\Extension\\MABS\\Special\\" : "src/special"
 	},
-	"config": {
-	},
 	"ExtensionMessagesFiles": {
 		"MABSAlias": "src/i18n/Alias.php"
 	},
@@ -24,6 +22,9 @@
 		"MABS": [
 			"i18n"
 		]
+	},
+	"requires": {
+		"MediaWiki": ">= 1.31.0"
 	},
 	"ResourceModules": {
 		"ext.mabs": {
@@ -43,6 +44,17 @@
 	},
 	"SpecialPages": {
 		"MABS": "MediaWiki\\Extension\\MABS\\Special\\MABS"
+	},
+	"ConfigRegistry": {
+		"MABS": "MediaWiki\\Extension\\MABS\\Config::newInstance"
+	},
+	"config_prefix": "MABS",
+	"config": {
+		"repo": {
+			"descriptionmsg": "mabs-repo-depo",
+			"path": true,
+			"value": "repo"
+		}
 	},
 	"manifest_version": 2
 }

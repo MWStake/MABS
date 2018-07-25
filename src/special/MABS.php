@@ -7,12 +7,22 @@
  */
 namespace MediaWiki\Extension\MABS\Special;
 
-use SpecialPage;
 use HTMLForm;
+use Mediawiki\MediaWikiServices;
+use MWException;
+use SpecialPage;
 
 class MABS extends SpecialPage {
 	public function __construct() {
 		parent::__construct( 'mabs' );
+	}
+
+	/**
+	 * Where this should be listed on the special pages
+	 * @return string
+	 */
+	protected function getGroupName() {
+		return 'wiki';
 	}
 
 	/**
@@ -22,66 +32,107 @@ class MABS extends SpecialPage {
 	 */
 	public function execute( $sub ) {
 		$out = $this->getOutput();
+		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
 
-		$out->setPageTitle( $this->msg( 'mabs-mabs' ) );
+		$out->setPageTitle( $this->msg( 'mabs-setup' ) );
+		$out->addWikiMsg( 'mabs-setup-intro' );
 
-		$out->addWikiMsg( 'mabs-mabs-intro' );
+		$this->writable = $config->get( "repo" );
 
-		$formDescriptor = [
-			'myfield1' => [
-				'section' => 'section1/subsection',
-				'label-message' => 'testform-myfield1',
-				'type' => 'text',
-				'default' => 'Meep',
-			],
-			'myfield2' => [
-				'section' => 'section1',
-				'label-message' => 'testform-myfield2',
-				'class' => 'HTMLTextField',
-			],
-			'myfield3' => [
-				'class' => 'HTMLTextField',
-				'label' => 'Foo bar baz',
-			],
-			'myfield4' => [
-				'class' => 'HTMLCheckField',
-				'label' => 'This be a pirate checkbox',
-				'default' => true,
-			],
-			'omgaselectbox' => [
-				'class' => 'HTMLSelectField',
-				'label' => 'Select an oooption',
-				'options' => [
-					'pirate' => 'Pirates',
-					'ninja' => 'Ninjas',
-					'ninjars' => 'Back to the NINJAR!'
-				],
-			],
-			'omgmultiselect' => [
-				'class' => 'HTMLMultiSelectField',
-				'label' => 'Weapons to use',
-				'options' => [ 'Cannons' => 'cannon', 'Swords' => 'sword' ],
-				'default' => [ 'sword' ],
-			],
-			'radiolol' => [
-				'class' => 'HTMLRadioField',
-				'label' => 'Who do you like?',
-				'options' => [
-					'pirates' => 'Pirates',
-					'ninjas' => 'Ninjas',
-					'both' => 'Both'
-				],
-				'default' => 'pirates',
-			],
-		];
+		$steps = [ 'getNotWritable', 'getInitialForm' ];
+		$htmlForm = null;
+		foreach ( $steps as $step ) {
+			if ( !isset( $htmlForm ) ) {
+				$htmlForm = $this->$step();
+			}
+		}
 
-		// $htmlForm = new HTMLForm( $formDescriptor, $this->getContext(), 'testform' );
-		$htmlForm = HTMLForm::factory( 'ooui', $formDescriptor, $this->getContext(), 'testform' );
-
-		$htmlForm->setSubmitText( 'Foo submit' );
-		$htmlForm->setSubmitCallback( [ __CLASS__, 'trySubmit' ] );
-
+		if ( $htmlForm === null ) {
+			throw new MWException( "wrong!" );
+		}
 		$htmlForm->show();
+	}
+
+	/**
+	 * Tell the user to create a writable directory
+	 *
+	 * @return HTMLForm|null
+	 */
+	private function getNotWritable() {
+		$msg = false;
+		$htmlForm = null;
+		$submit = wfMessage( "mabs-config-try-again" )->parse();
+		$callback = [ __CLASS__, 'trySubmit' ];
+
+		if ( !file_exists( $this->writable ) ) {
+			$msg = wfMessage( "mabs-config-please-fix-exists" );
+		}
+		if ( !$msg && !is_dir( $this->writable ) ) {
+			$msg = wfMessage( "mabs-config-please-fix-directory" );
+		}
+		if ( !$msg && !is_writable( $this->writable ) ) {
+			$msg = wfMessage( "mabs-config-please-fix-writable" );
+		}
+		if ( $msg ) {
+			$form = [
+				'info' => [
+					'section' => 'mabs-config-prepare-section',
+					'type' => 'info',
+					'default' => $msg->params( $this->writable )->parse(),
+					'help' => wfMessage( "mabs-config-fix-problems" )->parse(),
+					'raw' => true,
+				]
+			];
+			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
+			$htmlForm->setSubmitText( $submit );
+			$htmlForm->setSubmitCallback( $callback );
+		}
+		return $htmlForm;
+	}
+
+	/**
+	 * Get the form for initially creating the repo.
+	 *
+	 * @return HTMLForm|null
+	 */
+	private function getInitialForm() {
+		$msg = false;
+		$submit = wfMessage( "mabs-config-try-again" )->parse();
+		$callback = [ __CLASS__, 'initRepo' ];
+		$help = null;
+		$gitDir = $this->writable . "/.git";
+		if ( file_exists( $gitDir ) && !is_writable( $gitDir ) ) {
+			$msg = wfMessage( "mabs-config-gitdir-not-writable" );
+			$help = wfMessage( "mabs-config-fix-problems" )->parse();
+		}
+
+		$config = $this->writable . "/.git/config";
+		if ( !$msg && !file_exists( $config ) ) {
+			$msg = wfMessage( "mabs-config-not-exists" );
+			$submit = wfMessage( "mabs-config-create" )->parse();
+		}
+
+		if ( !$msg && !is_writable( $config ) ) {
+			$msg = wfMessage( "mabs-config-not-writable" );
+			$help = wfMessage( "mabs-config-fix-problems" )->parse();
+		}
+
+		$htmlForm = null;
+		if ( $msg ) {
+			$form = [
+				'info' => [
+					'section' => 'mabs-config-initialize-section',
+					'type' => 'info',
+					'default' => $msg->params( $gitDir, $config )->parse(),
+					'help' => $help,
+					'raw' => true,
+				]
+			];
+			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
+			$htmlForm->setSubmitText( $submit );
+			$htmlForm->setSubmitCallback( $callback );
+		}
+		return $htmlForm;
 	}
 
 	/**
@@ -89,17 +140,12 @@ class MABS extends SpecialPage {
 	 * @return bool|string
 	 */
 	public static function trySubmit( array $formData ) {
-		if ( $formData['myfield1'] == 'Fleep' ) {
-			return true;
-		}
-
-		return 'HAHA FAIL';
 	}
 
 	/**
-	 * @return string
+	 * @param array $formData data from submission
+	 * @return bool|string
 	 */
-	protected function getGroupName() {
-		return 'other';
+	public static function initRepo( array $formData ) {
 	}
 }

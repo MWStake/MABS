@@ -1,1 +1,18 @@
 #+TITLE: Multilateral Asynchronous Bilateral Synchronisation
+* Initialize repo
+#+BEGIN_SRC sh
+git init $IP/$MABSrepo
+#+END_SRC
+* Check in Current Wiki
+#+BEGIN_SRC sh
+git remote add local mediawiki::$wgServer
+git fetch local
+#+END_SRC
+* Set Remote git repo
+#+BEGIN_SRC sh
+git remote add $name mediawiki::$server
+git fetch
+#+END_SRC
+* Push Changes to remote wiki with merge strategy to force our changes
+* Pull changes from remote wiki with merge strategy to use their changes
+* Use default merge strategy and mark conflicts with templates

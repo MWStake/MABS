@@ -1,5 +1,7 @@
 .*.swp
 *~
+\#*#
+.#*
 /.project
 /composer.lock
 /vendor

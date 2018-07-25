@@ -20,7 +20,8 @@ test: _npm _composer ## Runs tests (see composer.json / Gruntfile.js)
 	@npm test
 	@composer test
 
-fix: _phpcbf
+.PHONY: fix
+fix: _phpcbf ## Fix code style problems for PHP
 	@vendor/bin/phpcbf
 
 ################################################################################
