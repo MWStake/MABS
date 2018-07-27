@@ -6,9 +6,10 @@
 		 (c-basic-offset . 4)
 		 (indent-tabs-mode . t)
 		 (lice:default-license . "gpl-3.0")
-		 (eval . (progn (when (fboundp 'delete-trailing-whitespace)
-						  (delete-trailing-whitespace))
-						  (tabify (point-min) (point-max))))
+		 (eval . (when (and (fboundp 'delete-trailing-whitespace)
+							(not buffer-read-only))
+				   (delete-trailing-whitespace)
+				   (tabify (point-min) (point-max))))
 		 (c-hanging-braces-alist
 		  (defun-open after)
 		  (block-open after)
