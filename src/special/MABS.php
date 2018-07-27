@@ -12,6 +12,7 @@ use Gitonomy\Git\Exception\RuntimeException;
 use Gitonomy\Git\Repository;
 use HTMLForm;
 use Mediawiki\MediaWikiServices;
+use MediaWiki\Extension\MABS\Config;
 use MWException;
 use SpecialPage;
 use Status;
@@ -42,7 +43,7 @@ class MABS extends SpecialPage {
 		$out->setPageTitle( $this->msg( 'mabs-setup' ) );
 		$out->addWikiMsg( 'mabs-setup-intro' );
 
-		$this->writable = $config->get( "repo" );
+		$this->writable = $config->get( Config::REPO );
 
 		$steps = [ 'getSoftwareDependencies', 'getNotWritable', 'getInitialForm', 'complete' ];
 		$htmlForm = null;
