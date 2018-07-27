@@ -7,10 +7,15 @@
  */
 namespace MediaWiki\Extension\MABS\Special;
 
+use Gitonomy\Git\Admin;
+use Gitonomy\Git\Exception\RuntimeException;
+use Gitonomy\Git\Repository;
 use HTMLForm;
 use Mediawiki\MediaWikiServices;
 use MWException;
 use SpecialPage;
+use Status;
+use Wikimedia;
 
 class MABS extends SpecialPage {
 	public function __construct() {
@@ -39,7 +44,7 @@ class MABS extends SpecialPage {
 
 		$this->writable = $config->get( "repo" );
 
-		$steps = [ 'getNotWritable', 'getInitialForm' ];
+		$steps = [ 'getSoftwareDependencies', 'getNotWritable', 'getInitialForm', 'complete' ];
 		$htmlForm = null;
 		foreach ( $steps as $step ) {
 			if ( !isset( $htmlForm ) ) {
@@ -54,6 +59,56 @@ class MABS extends SpecialPage {
 	}
 
 	/**
+	 * Look for any missing software dependencies.  Some duplication here.
+	 *
+	 * @return HTMLForm|null
+	 */
+	private function getSoftwareDependencies() {
+		$msg = false;
+		$htmlForm = null;
+		$submit = wfMessage( "mabs-config-try-again" )->parse();
+		$callback = [ __CLASS__, 'trySubmit' ];
+		$step = "dependency";
+
+		Wikimedia\suppressWarnings();
+		if ( !class_exists( 'Gitonomy\Git\Repository' ) ) {
+			$msg = wfMessage( "mabs-dependency-gitonomy" );
+		}
+		Wikimedia\restoreWarnings();
+
+		if ( !$msg ) {
+			Wikimedia\suppressWarnings();
+			try {
+				$repo = new Repository( "/" );
+				if ( !( $repo instanceof Repository ) ) {
+					$msg = wfMessage( "mabs-dependency-gitonomy" );
+				}
+			} catch ( Exception $e ) {
+			}
+			Wikimedia\restoreWarnings();
+		}
+
+		if ( $msg ) {
+			$form = [
+				'info' => [
+					'section' => "mabs-config-$step-section",
+					'type' => 'info',
+					'default' => $msg->params(
+						"[http://gitonomy.com/doc/gitlib/master/ Gitonomy]"
+					)->parse(),
+					'help' => wfMessage( "mabs-config-fix-problems" )->parse(),
+					'raw' => true,
+				]
+			];
+			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
+			$htmlForm->setSubmitText( $submit );
+			$htmlForm->setSubmitCallback( $callback );
+			$htmlForm->setFormIdentifier( $step );
+		}
+		return $htmlForm;
+	}
+
+	/**
 	 * Tell the user to create a writable directory
 	 *
 	 * @return HTMLForm|null
@@ -62,6 +117,7 @@ class MABS extends SpecialPage {
 		$msg = false;
 		$htmlForm = null;
 		$submit = wfMessage( "mabs-config-try-again" )->parse();
+		$step = "prepare";
 		$callback = [ __CLASS__, 'trySubmit' ];
 
 		if ( !file_exists( $this->writable ) ) {
@@ -76,7 +132,7 @@ class MABS extends SpecialPage {
 		if ( $msg ) {
 			$form = [
 				'info' => [
-					'section' => 'mabs-config-prepare-section',
+					'section' => "mabs-config-$step-section",
 					'type' => 'info',
 					'default' => $msg->params( $this->writable )->parse(),
 					'help' => wfMessage( "mabs-config-fix-problems" )->parse(),
@@ -86,6 +142,7 @@ class MABS extends SpecialPage {
 			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
 			$htmlForm->setSubmitText( $submit );
 			$htmlForm->setSubmitCallback( $callback );
+			$htmlForm->setFormIdentifier( $step );
 		}
 		return $htmlForm;
 	}
@@ -100,28 +157,34 @@ class MABS extends SpecialPage {
 		$submit = wfMessage( "mabs-config-try-again" )->parse();
 		$callback = [ __CLASS__, 'initRepo' ];
 		$help = null;
-		$gitDir = $this->writable . "/.git";
-		if ( file_exists( $gitDir ) && !is_writable( $gitDir ) ) {
+		$gitDir = $this->writable;
+		$step = "initialize";
+		if ( file_exists( $gitDir ) && !is_dir( $gitDir ) ) {
+			$msg = wfMessage( "mabs-config-please-fix-directory" );
+			$help = wfMessage( "mabs-config-fix-problems" )->parse();
+		}
+
+		if ( !$msg && file_exists( $gitDir ) && !is_writable( $gitDir ) ) {
 			$msg = wfMessage( "mabs-config-gitdir-not-writable" );
 			$help = wfMessage( "mabs-config-fix-problems" )->parse();
 		}
 
-		$config = $this->writable . "/.git/config";
+		$config = "$gitDir/config";
+		if ( !$msg && file_exists( $config ) && !is_writable( $config ) ) {
+			$msg = wfMessage( "mabs-config-not-writable" );
+			$help = wfMessage( "mabs-config-fix-problems" )->parse();
+		}
+
 		if ( !$msg && !file_exists( $config ) ) {
 			$msg = wfMessage( "mabs-config-not-exists" );
 			$submit = wfMessage( "mabs-config-create" )->parse();
-		}
-
-		if ( !$msg && !is_writable( $config ) ) {
-			$msg = wfMessage( "mabs-config-not-writable" );
-			$help = wfMessage( "mabs-config-fix-problems" )->parse();
 		}
 
 		$htmlForm = null;
 		if ( $msg ) {
 			$form = [
 				'info' => [
-					'section' => 'mabs-config-initialize-section',
+					'section' => "mabs-config-$step-section",
 					'type' => 'info',
 					'default' => $msg->params( $gitDir, $config )->parse(),
 					'help' => $help,
@@ -131,11 +194,14 @@ class MABS extends SpecialPage {
 			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
 			$htmlForm->setSubmitText( $submit );
 			$htmlForm->setSubmitCallback( $callback );
+			$htmlForm->setFormIdentifier( $step );
 		}
 		return $htmlForm;
 	}
 
 	/**
+	 * Empty (for now, at least) submit handler to go to the next step.
+	 *
 	 * @param array $formData data from submission
 	 * @return bool|string
 	 */
@@ -143,9 +209,46 @@ class MABS extends SpecialPage {
 	}
 
 	/**
+	 * Everything has been checked, do the initialization
+	 *
 	 * @param array $formData data from submission
 	 * @return bool|string
 	 */
 	public static function initRepo( array $formData ) {
+		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
+
+		try {
+			Admin::init( $config->get( "repo" ) );
+		} catch ( RuntimeException $e ) {
+			return Status::newFatal( "mabs-config-init-repo", $e->getMessage() );
+		}
+	}
+
+	/**
+	 * Last page of the wizard
+	 *
+	 * @return HTMLForm
+	 */
+	private function complete() {
+		$msg = false;
+		$htmlForm = null;
+		$submit = wfMessage( "mabs-config-continue" )->parse();
+		$callback = [ __CLASS__, 'trySubmit' ];
+		$step = "complete";
+
+		$form = [
+			'info' => [
+				'section' => "mabs-config-$step-section",
+				'type' => 'info',
+				'default' => wfMessage( "mabs-config-complete" )->parse(),
+				'raw' => true,
+			]
+		];
+		$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
+		$htmlForm->setSubmitText( $submit );
+		$htmlForm->setSubmitCallback( $callback );
+		$htmlForm->setFormIdentifier( $step );
+
+		return $htmlForm;
 	}
 }

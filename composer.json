@@ -5,6 +5,14 @@
 	"extra": {
 		"installer-name": "MABS"
 	},
+	"authors": {
+		{
+			"name": "Mark A. Hershberger",
+			"email": "mah@nichework.com",
+			"homepage": "http://hexmode.com",
+			"role": "Developer"
+		}
+	},
 	"require-dev": {
 		"jakub-onderka/php-parallel-lint": "~1.0",
 		"mediawiki/mediawiki-codesniffer": "~20.0"
