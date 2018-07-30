@@ -1,0 +1,3 @@
+[submodule "lib/mediawiki-git-remote"]
+	path = lib/mediawiki-git-remote
+	url = https://github.com/hexmode/mediawiki-git-remote.git
