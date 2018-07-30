@@ -26,7 +26,7 @@ use GlobalVarConfig;
 
 class Config extends GlobalVarConfig {
 
-	const REPO = 'repo';
+	const REPO = 'Repo';
 
 	public function __construct() {
 		parent::__construct( 'MABS' );
