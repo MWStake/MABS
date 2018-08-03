@@ -24,7 +24,6 @@
 namespace MediaWiki\Extension\MABS\Special;
 
 use ErrorPageError;
-use GitWrapper\GitWrapper;
 use HTMLForm;
 use SpecialPage;
 use Wikimedia;
@@ -38,7 +37,6 @@ class MABS extends SpecialPage {
 	public function __construct( $page = null ) {
 		parent::__construct( 'mabs' );
 		$this->page = $page;
-		$this->git = new GitWrapper;
 	}
 
 	/**
@@ -58,10 +56,10 @@ class MABS extends SpecialPage {
 		$out = $this->getOutput();
 		$out->setPageTitle( $this->msg( 'mabs-setup' ) );
 		$out->addWikiMsg( 'mabs-setup-intro' );
-		$this->page = "Setup";
+		$this->page = "setup";
 
 		if ( $sub ) {
-			$this->page = $sub;
+			$this->page = strtolower( $sub );
 		}
 
 		$this->pageClass = $this->fetchPageClass( $this->page );
@@ -79,7 +77,7 @@ class MABS extends SpecialPage {
 	 * @return null|object
 	 */
 	public function fetchPageClass( $page ) {
-		$class = __CLASS__ . '\\' . $page;
+		$class = __CLASS__ . '\\' . ucFirst( $page );
 		if ( $this->classExists( $class ) ) {
 			return new $class( $page );
 		}
@@ -119,6 +117,7 @@ class MABS extends SpecialPage {
 		$htmlForm = null;
 		foreach ( $this->pageClass->getSteps() as $step ) {
 			if ( !isset( $htmlForm ) ) {
+				$this->formStep = $this->page . "-$step";
 				$htmlForm = $this->doStep( $step );
 			}
 		}
@@ -139,14 +138,14 @@ class MABS extends SpecialPage {
 			);
 		}
 
-		$form = $this->pageClass->{"handle$step"}( $step, $submit, $callback );
+		$form = $this->pageClass->{"handle$step"}( $this->formStep, $submit, $callback );
 
 		$htmlForm = null;
 		if ( $form ) {
 			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
 			$htmlForm->setSubmitText( $submit );
 			$htmlForm->setSubmitCallback( $callback );
-			$htmlForm->setFormIdentifier( $step );
+			$htmlForm->setFormIdentifier( $this->formStep );
 		}
 		return $htmlForm;
 	}

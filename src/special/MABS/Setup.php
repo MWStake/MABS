@@ -23,9 +23,7 @@
  */
 namespace MediaWiki\Extension\MABS\Special\MABS;
 
-use Gitonomy\Git\Admin;
-use Gitonomy\Git\Exception\RuntimeException;
-use Gitonomy\Git\Repository;
+use GitWrapper\GitWrapper;
 use HTMLForm;
 use Mediawiki\MediaWikiServices;
 use MediaWiki\Extension\MABS\Config;
@@ -56,18 +54,19 @@ class Setup extends MABS {
 		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
 		self::$writable = $config->get( Config::REPO );
 
-		if ( !$this->classExists( 'Gitonomy\Git\Repository' ) ) {
-			$msg = wfMessage( "mabs-dependency-gitonomy" );
+		if ( !$this->classExists( 'GitWrapper\GitWrapper' ) ) {
+			$msg = wfMessage( "mabs-dependency-gitlib" );
 		}
 
 		if ( !$msg ) {
 			Wikimedia\suppressWarnings();
 			try {
-				$repo = new Repository( "/" );
-				if ( !( $repo instanceof Repository ) ) {
-					$msg = wfMessage( "mabs-dependency-gitonomy" );
+				$wrapper = new GitWrapper;
+				if ( !( $wrapper instanceof GitWrapper ) ) {
+					$msg = wfMessage( "mabs-dependency-gitlib" );
 				}
 			} catch ( Exception $e ) {
+				$msg = wfMessage( "mabs-dependency-gitlib" );
 			}
 			Wikimedia\restoreWarnings();
 		}
@@ -78,7 +77,7 @@ class Setup extends MABS {
 					'section' => "mabs-config-$step-section",
 					'type' => 'info',
 					'default' => $msg->params(
-						"[http://gitonomy.com/doc/gitlib/master/ Gitonomy]"
+						"[https://packagist.org/packages/cpliakas/git-wrapper GitWrapper]"
 					)->parse(),
 					'help' => wfMessage( "mabs-config-fix-problems" )->parse(),
 					'raw' => true,
@@ -195,7 +194,8 @@ class Setup extends MABS {
 	 */
 	public static function initRepo( array $formData ) {
 		try {
-			Admin::init( self::$writable );
+			$wrapper = new GitWrapper;
+			$wrapper->init( self::$writable, [ 'bare' => true ] );
 		} catch ( RuntimeException $e ) {
 			return Status::newFatal( "mabs-config-init-repo", $e->getMessage() );
 		}

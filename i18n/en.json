@@ -19,10 +19,10 @@
 	"mabs-no-wizard-step": "Missing step",
 	"mabs-dev-needed-step": "The developer needs to implement the '''<tt>$1</tt>''' step for the '''<tt>$2</tt>''' page.",
 
-	"repoform-mabs-config-dependency-section": "Missing software dependencies",
-	"mabs-dependency-gitonomy": "Please install the composer dependencies ($1)",
+	"repoform-mabs-config-setup-dependency-section": "Missing software dependencies",
+	"mabs-dependency-gitlib": "Please install the composer dependencies ($1)",
 
-	"repoform-mabs-config-prepare-section": "Prepare the repository",
+	"repoform-mabs-config-setup-prepare-section": "Prepare the repository",
 	"mabs-config-please-fix-exists": "The repository directory ($1) '''does not exist'''.",
 	"mabs-config-please-fix-directory": "The repository ($1) '''is not a directory'''.",
 	"mabs-config-please-fix-writable": "The repository directory ($1) '''is not writable'''.",
@@ -30,17 +30,23 @@
 	"mabs-config-not-exists": "The config file ($2) does not exist.  The repository needs to be initialized",
 	"mabs-config-not-writable": "The config file ($2) is not writable.  Please make it writable.",
 
-	"repoform-mabs-config-initialize-section": "Initialize the repository",
+	"repoform-mabs-config-setup-initialize-section": "Initialize the repository",
 	"mabs-config-init-repo": "Error while creating the repository:\n$1",
 	"mabs-config-create": "Do it",
 	"mabs-config-try-again": "Try again",
 	"mabs-config-fix-problems": "Please fix these problems before continuing. When you think they are fixed, submit this form.",
 
-	"repoform-mabs-config-complete-section": "MABS initialzation is complete",
+	"repoform-mabs-config-setup-complete-section": "MABS initialzation is complete",
 	"mabs-config-complete": "Continue on to import the wiki",
 	"mabs-config-continue": "Import",
 
-	"repoform-mabs-config-current-section": "Set the default remote",
+	"repoform-mabs-config-import-verify-section": "Repository not ready",
+	"mabs-config-start-over": "The repository still needs to be configured",
+
+	"repoform-mabs-config-import-setremote-section": "Set the default remote",
 	"mabs-config-remote": "This wiki is the remote for the repository we are setting up",
-	"mabs-config-origin-branch": "This branch for this wiki will be the <code>origin</code> branch"
+	"mabs-config-origin-branch": "This origin for this wiki will be the master branch",
+	"mabs-config-cannot-reach-self": "The wiki cannot reach itself ($1)",
+	"ugh": "bad!",
+	"mabs-config-set-remote": "Set it"
 }
