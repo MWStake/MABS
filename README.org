@@ -1,7 +1,7 @@
 #+TITLE: Multilateral Asynchronous Bilateral Synchronisation
 * Initialize repo
 #+BEGIN_SRC sh
-git init $IP/$MABSrepo
+git init $IP/$MABSRepo
 #+END_SRC
 * Check in Current Wiki
 #+BEGIN_SRC sh

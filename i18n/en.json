@@ -5,12 +5,23 @@
 	"mabs-desc": "Multilateral Asynchronous Bilateral Synchronisation",
 	"mabs-i18n-welcome": "Welcome to the localization file of the MABS extension.",
 	"mabs-setup": "Set up MABS!",
-	"mabs-setup-intro": "Welcome to the MABS configuration page.\n\nTo set up MABS, you need to make sure the repository directory exists and is writable by the webserver.  To change the repository directory, set <tt>$MABSrepo</tt> in your <tt>LocalSettings.php</tt> file",
+	"mabs-setup-intro": "Welcome to the MABS configuration page.\n\nTo set up MABS, you need to make sure the repository directory exists and is writable by the webserver.  To change the repository directory, set <tt>$MABSRepo</tt> in your <tt>LocalSettings.php</tt> file",
 	"mabs": "Wiki synchronisation",
 	"mabs-repoform-branchname": "Branch name",
 	"mabs-repo-depo": "Path relateive to the wiki-root to the MABS repository",
+
+	"grant-mabs": "MABS: Use the import/export API.",
+
+	"mabs-no-wizard": "Error setting up wizard",
+	"mabs-dev-needed": "The developer needs to implement a class for the '''<tt>$1</tt>''' page.",
+	"mabs-no-wizard-step-list": "No steps given for this wizard",
+	"mabs-dev-needed-step-list": "The developer needs to provide a list of steps for the '''<tt>$1</tt>''' page.",
+	"mabs-no-wizard-step": "Missing step",
+	"mabs-dev-needed-step": "The developer needs to implement the '''<tt>$1</tt>''' step for the '''<tt>$2</tt>''' page.",
+
 	"repoform-mabs-config-dependency-section": "Missing software dependencies",
 	"mabs-dependency-gitonomy": "Please install the composer dependencies ($1)",
+
 	"repoform-mabs-config-prepare-section": "Prepare the repository",
 	"mabs-config-please-fix-exists": "The repository directory ($1) '''does not exist'''.",
 	"mabs-config-please-fix-directory": "The repository ($1) '''is not a directory'''.",
@@ -18,6 +29,7 @@
 	"mabs-config-gitdir-not-writable": "The git directory ($1) exists, but is not writable.",
 	"mabs-config-not-exists": "The config file ($2) does not exist.  The repository needs to be initialized",
 	"mabs-config-not-writable": "The config file ($2) is not writable.  Please make it writable.",
+
 	"repoform-mabs-config-initialize-section": "Initialize the repository",
 	"mabs-config-init-repo": "Error while creating the repository:\n$1",
 	"mabs-config-create": "Do it",
@@ -26,5 +38,9 @@
 
 	"repoform-mabs-config-complete-section": "MABS initialzation is complete",
 	"mabs-config-complete": "Continue on to import the wiki",
-	"mabs-config-continue": "Import"
+	"mabs-config-continue": "Import",
+
+	"repoform-mabs-config-current-section": "Set the default remote",
+	"mabs-config-remote": "This wiki is the remote for the repository we are setting up",
+	"mabs-config-origin-branch": "This branch for this wiki will be the <code>origin</code> branch"
 }

@@ -1,26 +1,44 @@
 <?php
 /**
- * Setup SpecialPage for MABS extension
+ * SpecialPage for MABS extension
+ *
+ * Copyright (C) 2018  NicheWork, LLC
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  *
  * @file
  * @ingroup Extensions
+ * @author Mark A. Hershberger <mah@nichework.com>
  */
 namespace MediaWiki\Extension\MABS\Special;
 
-use Gitonomy\Git\Admin;
-use Gitonomy\Git\Exception\RuntimeException;
-use Gitonomy\Git\Repository;
+use ErrorPageError;
+use GitWrapper\GitWrapper;
 use HTMLForm;
-use Mediawiki\MediaWikiServices;
-use MediaWiki\Extension\MABS\Config;
-use MWException;
 use SpecialPage;
-use Status;
 use Wikimedia;
 
 class MABS extends SpecialPage {
-	public function __construct() {
+	protected $steps;
+	protected $page;
+	/**
+	 * @param string|null $page short name for this page class
+	 */
+	public function __construct( $page = null ) {
 		parent::__construct( 'mabs' );
+		$this->page = $page;
+		$this->git = new GitWrapper;
 	}
 
 	/**
@@ -38,218 +56,98 @@ class MABS extends SpecialPage {
 	 */
 	public function execute( $sub ) {
 		$out = $this->getOutput();
-		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
-
 		$out->setPageTitle( $this->msg( 'mabs-setup' ) );
 		$out->addWikiMsg( 'mabs-setup-intro' );
+		$this->page = "Setup";
 
-		$this->writable = $config->get( Config::REPO );
+		if ( $sub ) {
+			$this->page = $sub;
+		}
 
-		$steps = [ 'getSoftwareDependencies', 'getNotWritable', 'getInitialForm', 'complete' ];
+		$this->pageClass = $this->fetchPageClass( $this->page );
+		if ( $this->pageClass ) {
+			$this->doWizard();
+			return;
+		}
+		throw new ErrorPageError( "mabs-no-wizard", "mabs-dev-needed", [ $this->page ] );
+	}
+
+	/**
+	 * Get an object to handle this page
+	 *
+	 * @param string $page for the object
+	 * @return null|object
+	 */
+	public function fetchPageClass( $page ) {
+		$class = __CLASS__ . '\\' . $page;
+		if ( $this->classExists( $class ) ) {
+			return new $class( $page );
+		}
+	}
+
+	/**
+	 * Quietly determine if a class exists.
+	 *
+	 * @param string $class to check for
+	 * @return bool
+	 */
+	public function classExists( $class ) {
+		Wikimedia\suppressWarnings();
+		$exists = class_exists( $class );
+		Wikimedia\restoreWarnings();
+		return $exists;
+	}
+
+	/**
+	 * Get the steps for this wizared
+	 *
+	 * @return string[]
+	 */
+	protected function getSteps() {
+		if ( !$this->steps ) {
+			throw new ErrorPageError(
+				"mabs-no-wizard-step-list", "mabs-dev-needed-step-list", [ $this->page ]
+			);
+		}
+		return $this->steps;
+	}
+
+	/**
+	 * Run through the list of pages to get form elements to display
+	 */
+	public function doWizard() {
 		$htmlForm = null;
-		foreach ( $steps as $step ) {
+		foreach ( $this->pageClass->getSteps() as $step ) {
 			if ( !isset( $htmlForm ) ) {
-				$htmlForm = $this->$step();
+				$htmlForm = $this->doStep( $step );
 			}
 		}
 
 		if ( $htmlForm === null ) {
-			throw new MWException( "wrong!" );
+			throw new MWException( "You shouldn't get here." );
 		}
+
 		$htmlForm->show();
 	}
 
-	/**
-	 * Look for any missing software dependencies.  Some duplication here.
-	 *
-	 * @return HTMLForm|null
-	 */
-	private function getSoftwareDependencies() {
-		$msg = false;
-		$htmlForm = null;
+	private function doStep( &$step ) {
 		$submit = wfMessage( "mabs-config-try-again" )->parse();
-		$callback = [ __CLASS__, 'trySubmit' ];
-		$step = "dependency";
 
-		Wikimedia\suppressWarnings();
-		if ( !class_exists( 'Gitonomy\Git\Repository' ) ) {
-			$msg = wfMessage( "mabs-dependency-gitonomy" );
-		}
-		Wikimedia\restoreWarnings();
-
-		if ( !$msg ) {
-			Wikimedia\suppressWarnings();
-			try {
-				$repo = new Repository( "/" );
-				if ( !( $repo instanceof Repository ) ) {
-					$msg = wfMessage( "mabs-dependency-gitonomy" );
-				}
-			} catch ( Exception $e ) {
-			}
-			Wikimedia\restoreWarnings();
+		if ( !method_exists( $this->pageClass, "handle$step" ) ) {
+			throw new ErrorPageError(
+				"mabs-no-wizard-step", "mabs-dev-needed-step", [ $step, $this->page ]
+			);
 		}
 
-		if ( $msg ) {
-			$form = [
-				'info' => [
-					'section' => "mabs-config-$step-section",
-					'type' => 'info',
-					'default' => $msg->params(
-						"[http://gitonomy.com/doc/gitlib/master/ Gitonomy]"
-					)->parse(),
-					'help' => wfMessage( "mabs-config-fix-problems" )->parse(),
-					'raw' => true,
-				]
-			];
+		$form = $this->pageClass->{"handle$step"}( $step, $submit, $callback );
+
+		$htmlForm = null;
+		if ( $form ) {
 			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
 			$htmlForm->setSubmitText( $submit );
 			$htmlForm->setSubmitCallback( $callback );
 			$htmlForm->setFormIdentifier( $step );
 		}
-		return $htmlForm;
-	}
-
-	/**
-	 * Tell the user to create a writable directory
-	 *
-	 * @return HTMLForm|null
-	 */
-	private function getNotWritable() {
-		$msg = false;
-		$htmlForm = null;
-		$submit = wfMessage( "mabs-config-try-again" )->parse();
-		$step = "prepare";
-		$callback = [ __CLASS__, 'trySubmit' ];
-
-		if ( !file_exists( $this->writable ) ) {
-			$msg = wfMessage( "mabs-config-please-fix-exists" );
-		}
-		if ( !$msg && !is_dir( $this->writable ) ) {
-			$msg = wfMessage( "mabs-config-please-fix-directory" );
-		}
-		if ( !$msg && !is_writable( $this->writable ) ) {
-			$msg = wfMessage( "mabs-config-please-fix-writable" );
-		}
-		if ( $msg ) {
-			$form = [
-				'info' => [
-					'section' => "mabs-config-$step-section",
-					'type' => 'info',
-					'default' => $msg->params( $this->writable )->parse(),
-					'help' => wfMessage( "mabs-config-fix-problems" )->parse(),
-					'raw' => true,
-				]
-			];
-			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
-			$htmlForm->setSubmitText( $submit );
-			$htmlForm->setSubmitCallback( $callback );
-			$htmlForm->setFormIdentifier( $step );
-		}
-		return $htmlForm;
-	}
-
-	/**
-	 * Get the form for initially creating the repo.
-	 *
-	 * @return HTMLForm|null
-	 */
-	private function getInitialForm() {
-		$msg = false;
-		$submit = wfMessage( "mabs-config-try-again" )->parse();
-		$callback = [ __CLASS__, 'initRepo' ];
-		$help = null;
-		$gitDir = $this->writable;
-		$step = "initialize";
-		if ( file_exists( $gitDir ) && !is_dir( $gitDir ) ) {
-			$msg = wfMessage( "mabs-config-please-fix-directory" );
-			$help = wfMessage( "mabs-config-fix-problems" )->parse();
-		}
-
-		if ( !$msg && file_exists( $gitDir ) && !is_writable( $gitDir ) ) {
-			$msg = wfMessage( "mabs-config-gitdir-not-writable" );
-			$help = wfMessage( "mabs-config-fix-problems" )->parse();
-		}
-
-		$config = "$gitDir/config";
-		if ( !$msg && file_exists( $config ) && !is_writable( $config ) ) {
-			$msg = wfMessage( "mabs-config-not-writable" );
-			$help = wfMessage( "mabs-config-fix-problems" )->parse();
-		}
-
-		if ( !$msg && !file_exists( $config ) ) {
-			$msg = wfMessage( "mabs-config-not-exists" );
-			$submit = wfMessage( "mabs-config-create" )->parse();
-		}
-
-		$htmlForm = null;
-		if ( $msg ) {
-			$form = [
-				'info' => [
-					'section' => "mabs-config-$step-section",
-					'type' => 'info',
-					'default' => $msg->params( $gitDir, $config )->parse(),
-					'help' => $help,
-					'raw' => true,
-				]
-			];
-			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
-			$htmlForm->setSubmitText( $submit );
-			$htmlForm->setSubmitCallback( $callback );
-			$htmlForm->setFormIdentifier( $step );
-		}
-		return $htmlForm;
-	}
-
-	/**
-	 * Empty (for now, at least) submit handler to go to the next step.
-	 *
-	 * @param array $formData data from submission
-	 * @return bool|string
-	 */
-	public static function trySubmit( array $formData ) {
-	}
-
-	/**
-	 * Everything has been checked, do the initialization
-	 *
-	 * @param array $formData data from submission
-	 * @return bool|string
-	 */
-	public static function initRepo( array $formData ) {
-		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
-
-		try {
-			Admin::init( $config->get( "repo" ) );
-		} catch ( RuntimeException $e ) {
-			return Status::newFatal( "mabs-config-init-repo", $e->getMessage() );
-		}
-	}
-
-	/**
-	 * Last page of the wizard
-	 *
-	 * @return HTMLForm
-	 */
-	private function complete() {
-		$msg = false;
-		$htmlForm = null;
-		$submit = wfMessage( "mabs-config-continue" )->parse();
-		$callback = [ __CLASS__, 'trySubmit' ];
-		$step = "complete";
-
-		$form = [
-			'info' => [
-				'section' => "mabs-config-$step-section",
-				'type' => 'info',
-				'default' => wfMessage( "mabs-config-complete" )->parse(),
-				'raw' => true,
-			]
-		];
-		$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
-		$htmlForm->setSubmitText( $submit );
-		$htmlForm->setSubmitCallback( $callback );
-		$htmlForm->setFormIdentifier( $step );
-
 		return $htmlForm;
 	}
 }

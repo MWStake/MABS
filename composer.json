@@ -27,6 +27,6 @@
 	"require": {
 		"php": ">=7.0",
 		"composer/installers": "~1.0",
-		"gitonomy/gitlib": "~1.0"
+		"cpliakas/git-wrapper": "~1.7"
 	}
 }

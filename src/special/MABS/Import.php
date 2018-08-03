@@ -52,15 +52,22 @@ class Import extends MABS {
 
 		$form = [
 			'remote' => [
-					'section' => "mabs-config-$step-section",
-					'type' => 'url',
-					'label' => wfMessage( 'mabs-config-remote' )->parse(),
-					'default' => $this->getConfig()->get( "Server" )
-					. $this->getConfig()->get( "ScriptPath" ) . "/api.php",
-					'readonly' => true,
-					'raw' => true,
-				]
-			];
+				'section' => "mabs-config-$step-section",
+				'type' => 'url',
+				'label' => wfMessage( 'mabs-config-remote' )->parse(),
+				'default' => $this->getConfig()->get( "Server" )
+				. $this->getConfig()->get( "ScriptPath" ) . "/api.php",
+				'readonly' => true,
+				'raw' => true,
+			],
+			'name' => [
+				'section' => "mabs-config-$step-section",
+				'type' => 'text',
+				'label' => wfMessage( 'mabs-config-origin-branch' )->parse(),
+				'default' => 'origin',
+				'readonly' => true
+			]
+		];
 		return $form;
 	}
 
@@ -71,5 +78,6 @@ class Import extends MABS {
 	 * @return string|null
 	 */
 	public static function setRemote( array $form ) {
+		$this->git->addRemote( $form['name'], $form['remote'] );
 	}
 }
