@@ -141,7 +141,7 @@ class Import extends MABS {
 		);
 		$status = $req->execute();
 		if ( !$status->isOK() ) {
-			$msg = Status::newFatal("mabs-config-cannot-reach-self", $status->getMessage());
+			$msg = Status::newFatal( "mabs-config-cannot-reach-self", $status->getMessage() );
 			return $msg->getErrorsArray();
 		}
 

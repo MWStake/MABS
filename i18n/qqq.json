@@ -9,12 +9,14 @@
 		]
 	},
 	"mabs-desc": "{{desc|name=MABS|url=https://github.com/hexmode/MABS }}",
+	"mabs-i18n-welcome": "Used to greet the user when reading the i18n/??.json file.",
 	"mabs-setup": "Page title of the MABS setup special page.",
 	"mabs-setup-intro": "Text displayed on the MABS setup SpecialPage.",
-	"mabs-i18n-welcome": "Used to greet the user when reading the i18n/??.json file.",
 	"mabs": "Text of the link to the MABS setupspecial page on SpecialPages.",
 	"mabs-repoform-branchname": "Form field name",
 	"mabs-repo-depo": "Description of Repo configurable",
+
+	"grant-mabs": "Describe what the mabs right gives bots the ability to do.",
 
 	"mabs-no-wizard": "Title of error page for wizard",
 	"mabs-dev-needed": "Message telling the user that the developer has to write some code.",
@@ -23,15 +25,15 @@
 	"mabs-no-wizard-step": "Title of error page for a missing wizard step",
 	"mabs-dev-needed-step": "Message telling the user that the developer has to provide an implementation for a step.",
 
-	"repoform-mabs-config-dependency-section": "Header of form for missing composer dependencies",
-	"mabs-dependency-gitonomy": "Message to display if composer dependencies are missing",
+	"repoform-mabs-config-setup-dependency-section": "Header of form for missing composer dependencies",
+	"mabs-dependency-gitlib": "Message to display if composer dependencies are missing",
 
-	"repoform-mabs-config-prepare-section": "Header of form to prepare repository",
+	"repoform-mabs-config-setup-prepare-section": "Header of form to prepare repository",
 	"mabs-config-please-fix-exists": "Message to display if the repository does not exist.",
 	"mabs-config-please-fix-directory": "Message to display if the repository path is not a directory.",
 	"mabs-config-please-fix-writable": "Message to display if the repository path is not writable.",
 
-	"repoform-mabs-config-initialize-section": "Header of form just before initialization.",
+	"repoform-mabs-config-setup-initialize-section": "Header of form just before initialization.",
 	"mabs-config-init-repo": "Error while creating the repository:\n$1",
 	"mabs-config-create": "Message to display on the button that the user will click to perform some action",
 	"mabs-config-try-again": "Message to display on the button to indicate that the user needs to do something before trying again.",
@@ -40,10 +42,16 @@
 	"mabs-config-not-exists": "Message to display if the config file does not exist.  Tell the user we're reaedy to initialize",
 	"mabs-config-not-writable": "Message to display if the config file is not writable.",
 
-	"repoform-mabs-config-complete-section": "Header of form when initialization is complete",
+	"repoform-mabs-config-setup-complete-section": "Header of form when initialization is complete",
 	"mabs-config-complete": "Informative message that the next step will be importing the wiki",
 	"mabs-config-continue": "Label on the button to continue to import",
 
-	"repoform-mabs-config-current-section": "Set the default remote",
-	"mabs-config-remote": "This wiki is the remote for the repository we're setting up"
+	"repoform-mabs-config-import-verify-section": "Header of informative message with error",
+	"mabs-config-start-over": "Message describing an un-initialized repository",
+
+	"repoform-mabs-config-import-setremote-section": "Header of for to set remote",
+	"mabs-config-remote": "Label for the URL",
+	"mabs-config-origin-branch": "Label for the name of the remote",
+	"mabs-config-cannot-reach-self": "Error message shown when networking rules block local wiki",
+	"mabs-config-set-remote": "Label of button to set remote"
 }
