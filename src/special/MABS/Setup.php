@@ -35,11 +35,11 @@ use Wikimedia;
 class Setup extends MABS {
 	private static $writable;
 	protected $steps = [
-		'dependency', 'prepare', 'initialize', 'complete'
+		'dependency', 'prepare', 'initialize'
 	];
 
 	/**
-	 * Look for any missing software dependencies.  Some duplication here.
+	 * Look for any mfissing software dependencies.  Some duplication here.
 	 *
 	 * @param string $step that we're on
 	 * @param string &$submit button text
@@ -135,9 +135,10 @@ class Setup extends MABS {
 	 * @return HTMLForm|null
 	 */
 	protected function handleInitialize( $step, &$submit, &$callback ) {
-		$msg = false;
 		$submit = wfMessage( "mabs-config-try-again" )->parse();
 		$callback = [ __CLASS__, 'initRepo' ];
+		$form = [];
+		$msg = false;
 
 		$help = null;
 		$gitDir = self::$writable;
@@ -162,7 +163,6 @@ class Setup extends MABS {
 			$submit = wfMessage( "mabs-config-create" )->parse();
 		}
 
-		$form = [];
 		if ( $msg ) {
 			$form = [
 				'info' => [
@@ -184,6 +184,7 @@ class Setup extends MABS {
 	 * @return bool|string
 	 */
 	public static function trySubmit( array $formData ) {
+		return Status::newFatal( "mabs-config-init-repo", $e->getMessage() );
 	}
 
 	/**
@@ -199,41 +200,17 @@ class Setup extends MABS {
 		} catch ( RuntimeException $e ) {
 			return Status::newFatal( "mabs-config-init-repo", $e->getMessage() );
 		}
-	}
-
-	/**
-	 * Last page of the wizard
-	 *
-	 * @param string $step that we're on
-	 * @param string &$submit button text
-	 * @param callable &$callback to handle any form input
-	 * @return HTMLForm|null
-	 */
-	protected function handleComplete( $step, &$submit, &$callback ) {
-		$submit = wfMessage( "mabs-config-continue" )->parse();
-		$callback = [ __CLASS__, 'gotoImport' ];
-
-		$form = [
-			'info' => [
-				'section' => "mabs-config-$step-section",
-				'type' => 'info',
-				'default' => wfMessage( "mabs-config-complete" )->parse(),
-				'raw' => true,
-			]
-		];
-
-		return $form;
+		return Status::newGood();
 	}
 
 	/**
 	 * Initialization is done, go to the synchronisation bit
 	 *
-	 * @param array $formData data from submission
+	 * @param string $step we're on
 	 * @return bool|string
 	 */
-	public static function gotoImport( array $formData ) {
-		$context = RequestContext::getMain();
-		$out = $context->getOutput();
+	protected function doSuccess( $step ) {
+		$out = RequestContext::getMain()->getOutput();
 		$out->redirect( self::getTitleFor( "MABS", "Import" )->getFullUrl() );
 	}
 }

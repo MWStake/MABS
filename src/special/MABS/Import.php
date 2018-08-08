@@ -25,18 +25,19 @@ namespace MediaWiki\Extension\MABS\Special\MABS;
 
 use ErrorPageError;
 use GitWrapper\GitWrapper;
+use GitWrapper\GitException;
 use HTMLForm;
 use MWHttpRequest;
-use Mediawiki\MediaWikiServices;
 use MediaWiki\Extension\MABS\Config;
 use MediaWiki\Extension\MABS\Special\MABS;
+use Mediawiki\MediaWikiServices;
 use RequestContext;
 use Status;
 
 class Import extends MABS {
 	static protected $gitDir;
 	protected $steps = [
-		'verify', 'setremote', 'remote', 'push'
+		'verify', 'botpassword', 'setremote', 'fetch', 'push'
 	];
 
 	/**
@@ -69,6 +70,30 @@ class Import extends MABS {
 	}
 
 	/**
+	 * Handle setting up the remote and importing
+	 *
+	 * @param array $form data from the post
+	 * @return string|null
+	 */
+	public static function startOver( array $form ) {
+		$context = RequestContext::getMain();
+		$context->getOutput()->redirect( self::getTitleFor( "MABS" )->getFullUrl() );
+	}
+
+	/**
+	 * Make sure we have a bot user with the right permissions
+	 *
+	 * @param string $step that we're on
+	 * @param string &$submit button text
+	 * @param callable &$callback to handle any form input
+	 * @return HTMLForm|null
+	 */
+	protected function handleBotPassword( $step, &$submit, &$callback ) {
+		$form = null;
+		$callback = [ __CLASS__, 'setBotPassword' ];
+		$submit = wfMessage( 'mabs-config-set-bot-password' );
+	}
+	/**
 	 * Look for any missing software dependencies.  Some duplication with composer here.
 	 *
 	 * @param string $step that we're on
@@ -80,17 +105,14 @@ class Import extends MABS {
 		$form = null;
 		$callback = [ __CLASS__, 'setRemote' ];
 		$submit = wfMessage( 'mabs-config-set-remote' )->parse();
-		$git = new GitWrapper;
-		$url = $this->getConfig()->get( "Server" )
+		$git = self::getGitWrapper();
+		$url = "mediawiki::" . $this->getConfig()->get( "Server" )
 			 . $this->getConfig()->get( "ScriptPath" ) . "/api.php";
-		if ( !chdir( self::$gitDir ) ) {
-			throw new ErrorPageError( "mabs-system-error", "mabs-no-chdir", self::$gitDir );
-		}
 
 		$remotes = $git->git( "remote -v" );
+		$remote = [];
 		$lines = explode( "\n", $remotes );
 		if ( is_array( $lines ) && $lines[0] !== "" ) {
-			$remote = [];
 			array_map( function ( $line ) use ( &$remote ) {
 				// We don't differentiate (yet) between push and fetch
 				$part = preg_split( '/[\t ]/', $line );
@@ -100,11 +122,7 @@ class Import extends MABS {
 			}, $lines );
 		}
 
-		$form = [];
-		if ( !(
-			isset( $remote['origin'] )
-			&& $remote['origin'] === "mediawiki::" . $url
-		) ) {
+		if ( !( isset( $remote['origin'] ) && $remote['origin'] === $url ) ) {
 			$form = [
 				'remote' => [
 					'section' => "mabs-config-$step-section",
@@ -132,10 +150,12 @@ class Import extends MABS {
 	 * @return string|null
 	 */
 	public static function setRemote( array $form ) {
-		$git = new GitWrapper;
+		$git = self::getGitWrapper();
 
+		$remote = substr( $form['remote'], 0, 11 ) === "mediawiki::"
+				? substr( $form['remote'], 11 ) : null;
 		$req = MWHttpRequest::factory(
-			$form['remote'],
+			$remote,
 			[ 'method' => 'GET', 'timeout' => 'default', 'connectTimeout' => 'default' ],
 			__METHOD__
 		);
@@ -145,7 +165,71 @@ class Import extends MABS {
 			return $msg->getErrorsArray();
 		}
 
-		$git->git( "remote add '{$form['name']}' mediawiki::'{$form['remote']}'" );
+		$req = MWHttpRequest::factory(
+			$remote . '?' . http_build_query( [
+				'action' => 'query', 'meta' => 'siteinfo', 'format' => 'json',
+			] ),
+			[ 'method' => 'GET', 'timeout' => 'default', 'connectTimeout' => 'default' ],
+			__METHOD__
+		);
+		$status = $req->execute();
+		if ( !$status->isGood() ) {
+			$msg = Status::newFatal( "mabs-config-bad-response-status", $status->getMessage() );
+			return $msg->getErrorsArray();
+		}
+
+		$resp = json_decode( $req->getContent() );
+		if ( $resp === null ) {
+			$msg = Status::newFatal( "mabs-config-invalid-json-response", json_last_error_msg() );
+			return $msg->getErrorsArray();
+		}
+
+		$sitename = MediaWikiServices::getInstance()->getMainConfig()->get( "Sitename" );
+		if ( !(
+			isset( $resp->query->general->sitename ) && $resp->query->general->sitename == $sitename
+		) ) {
+			$msg = Status::newFatal(
+				"mabs-config-sitename-mismatch", $resp->query->general->sitename, $sitename
+			);
+			return $msg->getErrorsArray();
+		}
+
+		try {
+			$back = $git->git( "remote add '{$form['name']}' '{$form['remote']}'" );
+			if ( $back === "" ) {
+				return true;
+			}
+		} catch ( GitException $e ) {
+			$back = $e->getMessage();
+		}
+		return Status::newFatal( "mabs-config-add-remote-error", $back );
+	}
+
+	/**
+	 * Look for any missing software dependencies.  Some duplication with composer here.
+	 *
+	 * @param string $step that we're on
+	 * @param string &$submit button text
+	 * @param callable &$callback to handle any form input
+	 * @return HTMLForm|null
+	 */
+	protected function handleFetch( $step, &$submit, &$callback ) {
+		$git = self::getGitWrapper();
+		$count = explode( " ", $git->git( "count-objects" ) );
+		$objects = array_shift( $count );
+		$form = [];
+		$submit = wfMessage( "mabs-config-import" )->parse();
+		$callback = [ __CLASS__, 'doFetch' ];
+
+		if ( $objects === "0" ) {
+			$form = [
+				'holdOn' => [
+					'section' => "mabs-config-$step-section",
+					'type' => 'info',
+					'default' => wfMessage( "mabs-config-import-ready" )->parse()
+				] ];
+		}
+		return $form;
 	}
 
 	/**
@@ -154,8 +238,13 @@ class Import extends MABS {
 	 * @param array $form data from the post
 	 * @return string|null
 	 */
-	public static function startOver( array $form ) {
-		$context = RequestContext::getMain();
-		$context->getOutput()->redirect( self::getTitleFor( "MABS" )->getFullUrl() );
+	public static function doFetch( array $form ) {
+		$git = self::getGitWrapper();
+
+		try {
+			return $git->git( "fetch" );
+		} catch ( GitException $e ) {
+			return Status::newFatal( "mabs-config-import-fetch-error", $e->getMessage() );
+		}
 	}
 }

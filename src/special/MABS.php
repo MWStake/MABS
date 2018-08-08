@@ -24,13 +24,19 @@
 namespace MediaWiki\Extension\MABS\Special;
 
 use ErrorPageError;
+use GitWrapper\GitWrapper;
 use HTMLForm;
+use MediaWiki\Extension\MABS\Config;
+use MediaWiki\MediaWikiServices;
 use SpecialPage;
 use Wikimedia;
 
 class MABS extends SpecialPage {
 	protected $steps;
 	protected $page;
+	protected $mabsConf;
+	protected static $git;
+	protected static $gitDir;
 	/**
 	 * @param string|null $page short name for this page class
 	 */
@@ -48,19 +54,64 @@ class MABS extends SpecialPage {
 	}
 
 	/**
+	 * Return the directory for the git repository
+	 *
+	 * @return string
+	 */
+	protected static function getGitDir() {
+		if ( !self::$gitDir ) {
+			$conf = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
+			self::$gitDir = $conf->get( Config::REPO );
+		}
+		return self::$gitDir;
+	}
+
+	/**
+	 * Get a pre-initialized git wrapper
+	 *
+	 * @return GitWrapper
+	 */
+	protected static function getGitWrapper() {
+		if ( !self::$git ) {
+			self::$git = new GitWrapper();
+
+			$extDir = MediaWikiServices::getInstance()->getMainConfig()->get( "ExtensionDirectory" );
+			self::$git->setEnvVar( "PERL5LIB", "$extDir/MABS/lib/mediawiki-git-remote/lib:"
+							 . "$extDir/MABS/lib/mediawiki-git-remote/localcpan" );
+			self::$git->setEnvVar( "GIT_EXEC_PATH", "$extDir/MABS/lib/mediawiki-git-remote" );
+			self::$git->setEnvVar( "GIT_TRACE", "2" );
+			$dir = self::getGitDir();
+			if ( !chdir( $dir ) ) {
+				throw new ErrorPageError( "mabs-system-error", "mabs-no-chdir", $dir );
+			}
+		}
+		return self::$git;
+	}
+
+	/**
 	 * Show the page to the user
 	 *
 	 * @param string $sub The subpage string argument (if any).
 	 */
 	public function execute( $sub ) {
 		$out = $this->getOutput();
-		$out->setPageTitle( $this->msg( 'mabs-setup' ) );
-		$out->addWikiMsg( 'mabs-setup-intro' );
 		$this->page = "setup";
 
 		if ( $sub ) {
 			$this->page = strtolower( $sub );
 		}
+
+		$title = $this->msg( "mabs-{$this->page}-title" );
+		if ( !$title->exists() ) {
+			$title = $this->msg( "mabs" );
+		}
+		$out->setPageTitle( $title );
+
+		$intro = $this->msg( "mabs-{$this->page}-intro" );
+		if ( !$intro->exists() ) {
+			$intro = $this->msg( "mabs-intro" );
+		}
+		$out->addWikiMsg( $intro );
 
 		$this->pageClass = $this->fetchPageClass( $this->page );
 		if ( $this->pageClass ) {
@@ -123,10 +174,8 @@ class MABS extends SpecialPage {
 		}
 
 		if ( $htmlForm === null ) {
-			throw new MWException( "You shouldn't get here." );
+			$this->pageClass->doSuccess( "successful" );
 		}
-
-		$htmlForm->show();
 	}
 
 	private function doStep( &$step ) {
@@ -142,11 +191,31 @@ class MABS extends SpecialPage {
 
 		$htmlForm = null;
 		if ( $form ) {
+			if ( !( is_array( $callback ) && is_callable( $callback ) ) ) {
+				throw new ErrorPageError(
+					"mabs-no-wizard-callback", "mabs-dev-needed-callback", [ $step, $this->page ]
+				);
+			}
+
 			$htmlForm = HTMLForm::factory( 'ooui', $form, $this->getContext(), 'repoform' );
 			$htmlForm->setSubmitText( $submit );
 			$htmlForm->setSubmitCallback( $callback );
 			$htmlForm->setFormIdentifier( $this->formStep );
+			if ( $htmlForm->show() ) {
+				$this->pageClass->doSuccess( $step );
+			}
 		}
 		return $htmlForm;
+	}
+
+	/**
+	 * Override this to provide a success handler
+	 *
+	 * @param string $step we're on
+	 */
+	protected function doSuccess( $step ) {
+		throw new ErrorPageError(
+			"mabs-no-wizard-success", "mabs-dev-needed-success", [ $step, $this->page ]
+		);
 	}
 }
