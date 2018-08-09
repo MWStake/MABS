@@ -48,7 +48,7 @@
 	"mabs-config-start-over": "The repository still needs to be configured",
 
 	"mabs-import-title": "Import the current wiki",
-	"mabs-import-intro": "During this process the current wiki will be imported.  First, a custom wiki remote ([https://github.com/hexmode/mediawiki-git-remote git-remote-mediawiki]) will be set up, connectivity is tested, and the import is performed.",
+	"mabs-import-intro": "During this process the current wiki will be imported.  First, a custom wiki remote ([https://github.com/hexmode/mediawiki-git-remote git-remote-mediawiki]) is set up, connectivity is tested, and the import is performed.",
 
 	"repoform-mabs-config-import-setremote-section": "Set the default remote",
 	"mabs-config-remote": "This wiki is the remote for the repository we are setting up",
@@ -62,5 +62,5 @@
 	"repoform-mabs-config-import-fetch-section": "Import the current wiki",
 	"mabs-config-import-ready": "The repository is empty and ready for import",
 	"mabs-config-import": "Import",
-	"mabs-config-import-fetch-error": "Git reported a problem while fetching: $1"
+	"mabs-config-import-fetch-error": "Git reported a problem while attempting to import: <pre>$1</pre>"
 }

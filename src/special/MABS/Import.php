@@ -247,4 +247,26 @@ class Import extends MABS {
 			return Status::newFatal( "mabs-config-import-fetch-error", $e->getMessage() );
 		}
 	}
+
+	/**
+	 * Handle successful form submission
+	 *
+	 * @param string $step being handled.
+	 */
+	protected function doSuccess( $step ) {
+		static $inSuccess = false;
+		if ( $inSuccess ) {
+			throw new ErrorPageError(
+				"mabs-wizard-success-loop", "mabs-dev-needed-callback", [ $step, $this->page ]
+			);
+		}
+		$inSuccess = true;
+		if ( $step === 'push' ) {
+			$inSuccess = true;
+			$out = RequestContext::getMain()->getOutput();
+			$out->redirect( self::getTitleFor( "MABS", "Import" )->getFullUrl() );
+		}
+		$this->pageClass = $this;
+		$this->doWizard();
+	}
 }

@@ -34,9 +34,11 @@ use Wikimedia;
 class MABS extends SpecialPage {
 	protected $steps;
 	protected $page;
+	protected $pageClass;
 	protected $mabsConf;
 	protected static $git;
 	protected static $gitDir;
+
 	/**
 	 * @param string|null $page short name for this page class
 	 */

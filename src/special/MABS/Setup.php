@@ -184,7 +184,6 @@ class Setup extends MABS {
 	 * @return bool|string
 	 */
 	public static function trySubmit( array $formData ) {
-		return Status::newFatal( "mabs-config-init-repo", $e->getMessage() );
 	}
 
 	/**
