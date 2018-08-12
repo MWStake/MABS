@@ -36,7 +36,7 @@ use Status;
 class Import extends MABS {
 	static protected $gitDir;
 	protected $steps = [
-		'verify', 'setremote', 'remote', 'push'
+		'verify', 'setuser', 'setremote', 'remote', 'push'
 	];
 
 	/**
@@ -48,9 +48,10 @@ class Import extends MABS {
 	 * @return HTMLForm|null
 	 */
 	protected function handleVerify( $step, &$submit, &$callback ) {
+		$form = [];
 		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
 		self::$gitDir = $config->get( Config::REPO );
-		$form = [];
+
 		if (
 			!( file_exists( self::$gitDir )
 			   && is_dir( self::$gitDir )
@@ -68,6 +69,11 @@ class Import extends MABS {
 		return $form;
 	}
 
+	private function getFullURL() {
+		return $this->getConfig()->get( "Server" )
+			. $this->getConfig()->get( "ScriptPath" ) . "/api.php";
+	}
+
 	/**
 	 * Look for any missing software dependencies.  Some duplication with composer here.
 	 *
@@ -80,12 +86,8 @@ class Import extends MABS {
 		$form = null;
 		$callback = [ __CLASS__, 'setRemote' ];
 		$submit = wfMessage( 'mabs-config-set-remote' )->parse();
-		$git = new GitWrapper;
-		$url = $this->getConfig()->get( "Server" )
-			 . $this->getConfig()->get( "ScriptPath" ) . "/api.php";
-		if ( !chdir( self::$gitDir ) ) {
-			throw new ErrorPageError( "mabs-system-error", "mabs-no-chdir", self::$gitDir );
-		}
+		$git = self::getGit();
+		$url = $this->getFullUrl();
 
 		$remotes = $git->git( "remote -v" );
 		$lines = explode( "\n", $remotes );
@@ -132,7 +134,7 @@ class Import extends MABS {
 	 * @return string|null
 	 */
 	public static function setRemote( array $form ) {
-		$git = new GitWrapper;
+		$git = self::getGit();
 
 		$req = MWHttpRequest::factory(
 			$form['remote'],
@@ -146,6 +148,162 @@ class Import extends MABS {
 		}
 
 		$git->git( "remote add '{$form['name']}' mediawiki::'{$form['remote']}'" );
+	}
+
+	/**
+	 * Test the provided appId and password.
+	 *
+	 * @param string $user the user to use
+	 * @param string $pass the password to use
+	 * @return Status
+	 */
+	protected function loginCheck( $user, $pass ) {
+		return BotPassword::login( $user, $pass, $this->getRequest() );
+	}
+
+	/**
+	 * Get user and password that are set on the remote
+	 *
+	 * @return string[]
+	 */
+	protected function getUserPass() {
+		$url = $this->getFullUrl();
+		$git = self::getGit();
+		return [ $git->config( "credential." . $url . ".username" ),
+				 $git->config( "credential." . $url . ".password" ) ];
+	}
+
+	/**
+	 * Set user and password for git
+	 *
+	 * @param string $user username
+	 * @param string $pass password
+	 * @return string[]
+	 */
+	protected function setUserPass( $user, $pass ) {
+		$url = $this->getFullUrl();
+		$git = self::getGit();
+		echo "<pre>";
+		var_dump( 
+		$git->config( "credential." . $url . ".username", $user )
+		);
+		var_dump( 
+		$git->config( "credential." . $url . ".password", $pass )
+		);
+		exit;
+	}
+
+	/**
+	 * Set up a BotPassword user
+	 *
+	 * @param string $step that we're on
+	 * @param string &$submit button text
+	 * @param callable &$callback to handle any form input
+	 * @return HTMLForm|null
+	 */
+	protected function handleSetUser( $step, &$submit, &$callback ) {
+		$form = null;
+		$callback = [ __CLASS__, 'setUser' ];
+		$submit = wfMessage( 'mabs-config-set-user' )->parse();
+		$appId = "mabs";
+
+		list( $user, $pass ) = $this->getUserPass();
+		$status = $this->loginCheck( $user, $pass );
+		if ( $status->isOk() ) {
+			$form = [
+				'carryOn' => [
+					'section' => "mabs-config-$step-section",
+					'type' => 'info',
+					'default' => wfMessage( "mabs-config-using-user", $user )->parse()
+				],
+				'continue' => [
+					'type' => 'hidden',
+					'default' => true
+				],
+			];
+		# Do not try !== since $user is a GitWrapper object
+		} elseif ( $user != "" ) {
+			$form = [
+				"takeOverUser" => [
+					'section' => "mabs-config-$step-section",
+					'label' => wfMessage( 'mabs-config-reset-password', $user )->parse(),
+					'default' => false,
+					'type' => 'check',
+				],
+				'user' => [
+					'type' => 'hidden',
+					'default' => $user
+				],
+			];
+		# Do not try === since these are GitWrapper objects
+		} elseif ( $user == "" && $pass == "" ) {
+			$form = [
+				'user' => [
+					'section' => "mabs-config-$step-section",
+					'label' => wfMessage( 'mabs-config-setup-user' )->parse(),
+					'readonly' => true,
+				],
+				'fromScratch' => [
+					'type' => 'hidden',
+					'default' => $appId
+				],
+			];
+		}
+		return $form;
+	}
+
+	/**
+	 * Get a new auto-generated password.
+	 *
+	 * @param BotPassword $bot object
+	 * @return string
+	 */
+	private static function getNewPassword( BotPassword $bot ) {
+		$conf = \RequestContext::getMain()->getConfig();
+		$pass = $bot->generatePassword( $conf );
+		$passwordFactory = new PasswordFactory();
+		$passwordFactory->init( $conf );
+		$password = $passwordFactory->newFromPlaintext( $pass );
+		return $password;
+	}
+
+	/**
+	 * Handle setting up the remote and importing
+	 *
+	 * @param array $form data from the post
+	 * @return string|null
+	 */
+	public static function setUser( array $form ) {
+		$context = RequestContext::getMain();
+		$user = $context->getUser();
+		if ( $form['fromScratch'] ) {
+			$bot = BotPassword::newUnsaved(
+				[ 'user' => $user, 'appId' => $form['fromScratch'], 'grants' => 'mabs' ]
+			);
+			return $bot->save( 'insert', self::getNewPassword( $bot ) )
+				?? 'mabs-failure-saving-user';
+		} elseif ( $form['takeOverUser'] ) {
+			$bot = BotPassword::newFromUser( $user, $form['user'] );
+			return $bot->save( 'update', self::getNewPassword( $bot ) )
+				?? 'mabs-failure-updating-password';
+		} elseif ( isset( $form['takeOverUser'] ) ) {
+			return 'mabs-failuere-takeover-needed';
+		} elseif ( $form['continue'] ) {
+			return true;
+		}
+		return 'mabs-not-an-actual-destination';
+	}
+
+	/**
+	 * Set up a push
+	 *
+	 * @param string $step that we're on
+	 * @param string &$submit button text
+	 * @param callable &$callback to handle any form input
+	 * @return HTMLForm|null
+	 */
+	protected function handlePush( $step, &$submit, &$callback ) {
+		var_dump($step);exit;
 	}
 
 	/**

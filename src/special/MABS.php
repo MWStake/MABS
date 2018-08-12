@@ -48,6 +48,21 @@ class MABS extends SpecialPage {
 	}
 
 	/**
+	 * Get an initialized GitWrapper
+	 *
+	 * @return GitWrapper
+	 */
+	protected static function getGit() {
+		$git = new GitWrapper;
+		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
+		self::$gitDir = $config->get( Config::REPO );
+		if ( !chdir( self::$gitDir ) ) {
+			throw new ErrorPageError( "mabs-system-error", "mabs-no-chdir", self::$gitDir );
+		}
+		return $git;
+	}
+
+	/**
 	 * Show the page to the user
 	 *
 	 * @param string $sub The subpage string argument (if any).

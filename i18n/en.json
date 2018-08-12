@@ -47,5 +47,10 @@
 	"mabs-config-remote": "This wiki is the remote for the repository we are setting up",
 	"mabs-config-origin-branch": "This origin for this wiki will be the master branch",
 	"mabs-config-cannot-reach-self": "The wiki cannot reach itself ($1)",
-	"mabs-config-set-remote": "Set it"
+	"mabs-config-set-remote": "Set it",
+
+	"repoform-mabs-config-import-setuser-section": "Set up the MABS user",
+	"mabs-config-set-user": "Setup user"
+	
+
 }
