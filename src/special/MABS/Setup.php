@@ -204,12 +204,10 @@ class Setup extends MABS {
 
 	/**
 	 * Initialization is done, go to the synchronisation bit
-	 *
-	 * @param string $step we're on
-	 * @return bool|string
+	 * @return Title
 	 */
-	protected function doSuccess( $step ) {
-		$out = RequestContext::getMain()->getOutput();
-		$out->redirect( self::getTitleFor( "MABS", "Import" )->getFullUrl() );
-	}
+    protected function getNextPage() {
+        return self::getTitleFor( "MABS", "Import" );
+    }
 }
+

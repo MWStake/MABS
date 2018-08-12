@@ -28,6 +28,7 @@ use GitWrapper\GitWrapper;
 use HTMLForm;
 use MediaWiki\Extension\MABS\Config;
 use MediaWiki\MediaWikiServices;
+use RequestContext;
 use SpecialPage;
 use Wikimedia;
 
@@ -74,6 +75,7 @@ class MABS extends SpecialPage {
 	 * @return GitWrapper
 	 */
 	protected static function getGitWrapper() {
+        $dir = self::getGitDir();
 		if ( !self::$git ) {
 			self::$git = new GitWrapper();
 
@@ -81,13 +83,13 @@ class MABS extends SpecialPage {
 			self::$git->setEnvVar( "PERL5LIB", "$extDir/MABS/lib/mediawiki-git-remote/lib:"
 							 . "$extDir/MABS/lib/mediawiki-git-remote/localcpan" );
 			self::$git->setEnvVar( "GIT_EXEC_PATH", "$extDir/MABS/lib/mediawiki-git-remote" );
-			self::$git->setEnvVar( "GIT_TRACE", "2" );
-			$dir = self::getGitDir();
+			self::$git->setEnvVar( "GIT_MW_DEBUG", "1" );
+			self::$git->setEnvVar( "GIT_TRACE", "0" );
 			if ( !chdir( $dir ) ) {
 				throw new ErrorPageError( "mabs-system-error", "mabs-no-chdir", $dir );
 			}
 		}
-		return self::$git;
+		return self::$git->workingCopy( $dir );
 	}
 
 	/**
@@ -165,10 +167,15 @@ class MABS extends SpecialPage {
 
 	/**
 	 * Run through the list of pages to get form elements to display
+     *
+     * @param string|null $step to start on
 	 */
-	public function doWizard() {
+	public function doWizard( $onStep = null ) {
 		$htmlForm = null;
 		foreach ( $this->pageClass->getSteps() as $step ) {
+            if ( $onStep && $step !== $onStep ) {
+                continue;
+            }
 			if ( !isset( $htmlForm ) ) {
 				$this->formStep = $this->page . "-$step";
 				$htmlForm = $this->doStep( $step );
@@ -211,13 +218,34 @@ class MABS extends SpecialPage {
 	}
 
 	/**
-	 * Override this to provide a success handler
+	 * Get the next page to go to
 	 *
-	 * @param string $step we're on
+	 * @return Title
+	 */
+    protected function getNextPage() { throw new \Exception( "blah!" ); }
+
+	/**
+	 * Handle successful form submission
+	 *
+	 * @param string $step being handled.
 	 */
 	protected function doSuccess( $step ) {
-		throw new ErrorPageError(
-			"mabs-no-wizard-success", "mabs-dev-needed-success", [ $step, $this->page ]
-		);
+		static $inSuccess = false;
+		if ( $inSuccess ) {
+			throw new ErrorPageError(
+				"mabs-wizard-success-loop", "mabs-dev-needed-callback", [ $step, $this->page ]
+			);
+		}
+		$inSuccess = true;
+
+        $allSteps = $this->steps;
+        $pos = array_search( $step, $allSteps );
+        if ( is_int( $pos ) && $pos + 1 <= count( $allSteps ) - 1 ) {
+            $this->pageClass = $this;
+            $this->doWizard( $allSteps[ $pos + 1 ] );
+            return;
+        }
+        $out = RequestContext::getMain()->getOutput();
+        $out->redirect( $this->getNextPage()->getFullUrl() );
 	}
 }

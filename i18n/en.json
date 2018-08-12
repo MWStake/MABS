@@ -17,6 +17,7 @@
 	"mabs-no-wizard-step-list": "No steps given for this wizard",
 	"mabs-dev-needed-step-list": "The developer needs to provide a list of steps for the '''<tt>$1</tt>''' page.",
 	"mabs-no-wizard-step": "Missing step",
+	"mabs-wizard-success-loop": "We have been more successful than we should be",
 	"mabs-dev-needed-step": "The developer needs to implement the '''<tt>$1</tt>''' step for the '''<tt>$2</tt>''' page.",
 	"mabs-no-wizard-success": "Missing success handler",
 	"mabs-dev-needed-success": "The developer needs to implement what happens on successful form completion for the '''<tt>$1</tt>''' step on the '''<tt>$2</tt>''' page.",
@@ -65,5 +66,9 @@
 	"mabs-config-import-fetch-error": "Git reported a problem while attempting to import: <pre>$1</pre>",
 
 	"repoform-mabs-config-import-setuser-section": "Set up the MABS user",
-	"mabs-config-set-user": "Setup user"
+	"mabs-config-setup-user": "We'll set up a mabs user--'''''explanatory text here'''''",
+	"mabs-config-reset-password": "Use the current user ($1), but reset the password",
+	"mabs-failure-takeover-needed": "The stored password on disk must match the password in BotPasswords",
+	"mabs-config-set-user": "Setup user",
+	"mabs-not-an-actual-destination": "WHA!?!?"
 }
