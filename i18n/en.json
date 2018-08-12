@@ -63,4 +63,8 @@
 	"mabs-config-import-ready": "The repository is empty and ready for import",
 	"mabs-config-import": "Import",
 	"mabs-config-import-fetch-error": "Git reported a problem while attempting to import: <pre>$1</pre>"
+
+	"repoform-mabs-config-import-setuser-section": "Set up the MABS user",
+	"mabs-config-set-user": "Setup user"
+
 }
