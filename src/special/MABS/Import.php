@@ -32,14 +32,13 @@ use HTMLForm;
 use MWHttpRequest;
 use MediaWiki\Extension\MABS\Config;
 use MediaWiki\Extension\MABS\Special\MABS;
-use Mediawiki\MediaWikiServices;
+use MediaWiki\MediaWikiServices;
 use PasswordFactory;
 use RequestContext;
 use Status;
 use User;
 
 class Import extends MABS {
-	static protected $gitDir;
 	protected $steps = [
 		'verify', 'setuser', 'setremote', 'fetch', 'push'
 	];
@@ -333,16 +332,27 @@ class Import extends MABS {
 	 * @return string[]
 	 */
 	private static function getNewPassword( BotPassword $bot ) {
-		$conf = \RequestContext::getMain()->getConfig();
+		$conf = RequestContext::getMain()->getConfig();
 		$pass = $bot->generatePassword( $conf );
 		$passwordFactory = new PasswordFactory();
 		$passwordFactory->init( $conf );
-		$password = $passwordFactory->newFromPlaintext( $pass );
-		return [ $pass, $password ];
+		return [ $pass, $passwordFactory->newFromPlainText( $pass ) ];
+	}
+
+	private static function getBotPass( user $user, $appId ) {
+		$bot = BotPassword::newFromUser( $user, $appId );
+		if ( $bot === null ) {
+			$bot = BotPassword::newUnsaved(
+				[ 'user' => $user, 'appId' => $appId, 'grants' => [ 'mabs' ] ]
+			);
+		}
+		list( $pass, $crypt ) = self::getNewPassword( $bot );
+		self::setUserPass( $bot, $pass );
+		return [ $bot, $crypt ];
 	}
 
 	/**
-	 * Handle setting up the remote and importing
+	 * Handle setting up the User
 	 *
 	 * @param array $form data from the post
 	 * @return string|null
@@ -354,14 +364,11 @@ class Import extends MABS {
 			$bot = BotPassword::newUnsaved(
 				[ 'user' => $user, 'appId' => $form['fromScratch'], 'grants' => [ 'mabs' ] ]
 			);
-            list( $pass, $crypt ) = self::getNewPassword( $bot );
-            self::setUserPass( $bot, $pass );
+			list( $bot, $crypt ) = self::getBotPass( $user, $form['fromScratch'] );
 			return $bot->save( 'insert', $crypt )
 				?? 'mabs-failure-saving-user';
 		} elseif ( isset( $form['takeOverUser'] ) && $form['takeOverUser'] ) {
-			$bot = BotPassword::newFromUser( $user, trim( $form['user'] ) );
-            list( $pass, $crypt ) = self::getNewPassword( $bot );
-            self::setUserPass( $bot, $pass );
+            list( $bot, $crypt ) = self::getBotPass( $user, $form['user'] );
 			return $bot->save( 'update', $crypt )
               ?? 'mabs-failure-updating-password';
 		} elseif ( isset( $form['takeOverUser'] ) ) {

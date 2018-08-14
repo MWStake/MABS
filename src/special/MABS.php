@@ -72,10 +72,10 @@ class MABS extends SpecialPage {
 	/**
 	 * Get a pre-initialized git wrapper
 	 *
-	 * @return GitWrapper
+	 * @return GitWrapper\GitWorkingCopy
 	 */
 	protected static function getGitWrapper() {
-        $dir = self::getGitDir();
+		$dir = self::getGitDir();
 		if ( !self::$git ) {
 			self::$git = new GitWrapper();
 
@@ -167,15 +167,15 @@ class MABS extends SpecialPage {
 
 	/**
 	 * Run through the list of pages to get form elements to display
-     *
-     * @param string|null $step to start on
+	 *
+	 * @param string|null $onStep to start on
 	 */
 	public function doWizard( $onStep = null ) {
 		$htmlForm = null;
 		foreach ( $this->pageClass->getSteps() as $step ) {
-            if ( $onStep && $step !== $onStep ) {
-                continue;
-            }
+			if ( $onStep && $step !== $onStep ) {
+				continue;
+			}
 			if ( !isset( $htmlForm ) ) {
 				$this->formStep = $this->page . "-$step";
 				$htmlForm = $this->doStep( $step );
@@ -222,7 +222,9 @@ class MABS extends SpecialPage {
 	 *
 	 * @return Title
 	 */
-    protected function getNextPage() { throw new \Exception( "blah!" ); }
+	protected function getNextPage() {
+		throw new \Exception( "blah!" );
+	}
 
 	/**
 	 * Handle successful form submission
@@ -238,14 +240,14 @@ class MABS extends SpecialPage {
 		}
 		$inSuccess = true;
 
-        $allSteps = $this->steps;
-        $pos = array_search( $step, $allSteps );
-        if ( is_int( $pos ) && $pos + 1 <= count( $allSteps ) - 1 ) {
-            $this->pageClass = $this;
-            $this->doWizard( $allSteps[ $pos + 1 ] );
-            return;
-        }
-        $out = RequestContext::getMain()->getOutput();
-        $out->redirect( $this->getNextPage()->getFullUrl() );
+		$allSteps = $this->steps;
+		$pos = array_search( $step, $allSteps );
+		if ( is_int( $pos ) && $pos + 1 <= count( $allSteps ) - 1 ) {
+			$this->pageClass = $this;
+			$this->doWizard( $allSteps[ $pos + 1 ] );
+			return;
+		}
+		$out = RequestContext::getMain()->getOutput();
+		$out->redirect( $this->getNextPage()->getFullUrl() );
 	}
 }
