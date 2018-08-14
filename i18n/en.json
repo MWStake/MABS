@@ -50,7 +50,8 @@
 	"mabs-config-set-remote": "Set it",
 
 	"repoform-mabs-config-import-setuser-section": "Set up the MABS user",
-	"mabs-config-set-user": "Setup user"
-	
+	"mabs-config-set-user": "Setup user",
+	"mabs-config-reset-password": "Reset password and use this user",
+	"mabs-failure-takeover-needed": "The password must be reset so that we can use it."
 
 }

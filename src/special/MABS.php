@@ -24,13 +24,18 @@
 namespace MediaWiki\Extension\MABS\Special;
 
 use ErrorPageError;
+use GitWrapper\GitWrapper;
 use HTMLForm;
+use MediaWiki\Extension\MABS\Config;
+use Mediawiki\MediaWikiServices;
 use SpecialPage;
 use Wikimedia;
 
 class MABS extends SpecialPage {
 	protected $steps;
 	protected $page;
+	static protected $gitDir;
+
 	/**
 	 * @param string|null $page short name for this page class
 	 */
@@ -50,16 +55,21 @@ class MABS extends SpecialPage {
 	/**
 	 * Get an initialized GitWrapper
 	 *
-	 * @return GitWrapper
+	 * @return GitWrapper\GitWorkingCopy
 	 */
 	protected static function getGit() {
 		$git = new GitWrapper;
 		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
+
+		$mgrDir = dirname( dirname( __DIR__ ) ) . "lib/mediawiki-git-remote";
+		$git->setEnvVar( "PERL5LIB", "$mgrDir/lib:$mgrDir/localcpan" );
+		$git->setEnvVar( "GIT_EXEC_PATH", $mgrDir );
+
 		self::$gitDir = $config->get( Config::REPO );
 		if ( !chdir( self::$gitDir ) ) {
 			throw new ErrorPageError( "mabs-system-error", "mabs-no-chdir", self::$gitDir );
 		}
-		return $git;
+		return $git->workingCopy( self::$gitDir );
 	}
 
 	/**

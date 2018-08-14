@@ -23,18 +23,19 @@
  */
 namespace MediaWiki\Extension\MABS\Special\MABS;
 
-use ErrorPageError;
-use GitWrapper\GitWrapper;
+use BotPassword;
+use FauxRequest;
 use HTMLForm;
 use MWHttpRequest;
 use Mediawiki\MediaWikiServices;
 use MediaWiki\Extension\MABS\Config;
 use MediaWiki\Extension\MABS\Special\MABS;
+use PasswordFactory;
 use RequestContext;
 use Status;
+use User;
 
 class Import extends MABS {
-	static protected $gitDir;
 	protected $steps = [
 		'verify', 'setuser', 'setremote', 'remote', 'push'
 	];
@@ -89,7 +90,7 @@ class Import extends MABS {
 		$git = self::getGit();
 		$url = $this->getFullUrl();
 
-		$remotes = $git->git( "remote -v" );
+		$remotes = $git->remote( "-v" );
 		$lines = explode( "\n", $remotes );
 		if ( is_array( $lines ) && $lines[0] !== "" ) {
 			$remote = [];
@@ -147,7 +148,7 @@ class Import extends MABS {
 			return $msg->getErrorsArray();
 		}
 
-		$git->git( "remote add '{$form['name']}' mediawiki::'{$form['remote']}'" );
+		$git->remote( "add",  $form['name'], "mediawiki::{$form['remote']}" );
 	}
 
 	/**
@@ -158,7 +159,7 @@ class Import extends MABS {
 	 * @return Status
 	 */
 	protected function loginCheck( $user, $pass ) {
-		return BotPassword::login( $user, $pass, $this->getRequest() );
+		return BotPassword::login( $user, $pass, new FauxRequest );
 	}
 
 	/**
@@ -169,8 +170,8 @@ class Import extends MABS {
 	protected function getUserPass() {
 		$url = $this->getFullUrl();
 		$git = self::getGit();
-		return [ $git->config( "credential." . $url . ".username" ),
-				 $git->config( "credential." . $url . ".password" ) ];
+		return [ trim( (string)$git->config( "credential." . $url . ".username" ) ),
+				 trim( (string)$git->config( "credential." . $url . ".password" ) ) ];
 	}
 
 	/**
@@ -183,14 +184,8 @@ class Import extends MABS {
 	protected function setUserPass( $user, $pass ) {
 		$url = $this->getFullUrl();
 		$git = self::getGit();
-		echo "<pre>";
-		var_dump( 
-		$git->config( "credential." . $url . ".username", $user )
-		);
-		var_dump( 
-		$git->config( "credential." . $url . ".password", $pass )
-		);
-		exit;
+		$git->config( "credential." . $url . ".username", $user );
+		$git->config( "credential." . $url . ".password", $pass );
 	}
 
 	/**
@@ -210,17 +205,7 @@ class Import extends MABS {
 		list( $user, $pass ) = $this->getUserPass();
 		$status = $this->loginCheck( $user, $pass );
 		if ( $status->isOk() ) {
-			$form = [
-				'carryOn' => [
-					'section' => "mabs-config-$step-section",
-					'type' => 'info',
-					'default' => wfMessage( "mabs-config-using-user", $user )->parse()
-				],
-				'continue' => [
-					'type' => 'hidden',
-					'default' => true
-				],
-			];
+			$form = null;
 		# Do not try !== since $user is a GitWrapper object
 		} elseif ( $user != "" ) {
 			$form = [
@@ -259,12 +244,22 @@ class Import extends MABS {
 	 * @return string
 	 */
 	private static function getNewPassword( BotPassword $bot ) {
-		$conf = \RequestContext::getMain()->getConfig();
+		$conf = RequestContext::getMain()->getConfig();
 		$pass = $bot->generatePassword( $conf );
 		$passwordFactory = new PasswordFactory();
 		$passwordFactory->init( $conf );
 		$password = $passwordFactory->newFromPlaintext( $pass );
 		return $password;
+	}
+
+	private static function getBotPass( User $user, $appId ) {
+		$bot = BotPassword::newFromUser( $user, $appId );
+		if ( $bot === null ) {
+			$bot = BotPassword::newUnsaved(
+				[ 'user' => $user, 'appId' => $appId, 'grants' => [ 'mabs' ] ]
+			);
+		}
+		return [ $bot, self::getNewPassword( $bot ) ];
 	}
 
 	/**
@@ -276,18 +271,16 @@ class Import extends MABS {
 	public static function setUser( array $form ) {
 		$context = RequestContext::getMain();
 		$user = $context->getUser();
-		if ( $form['fromScratch'] ) {
-			$bot = BotPassword::newUnsaved(
-				[ 'user' => $user, 'appId' => $form['fromScratch'], 'grants' => 'mabs' ]
-			);
-			return $bot->save( 'insert', self::getNewPassword( $bot ) )
+		if ( isset( $form['fromScratch'] ) ) {
+			list( $bot, $pass ) = self::getBotPass( $user, $form['fromScratch'] );
+			return $bot->save( 'insert', $pass )
 				?? 'mabs-failure-saving-user';
-		} elseif ( $form['takeOverUser'] ) {
-			$bot = BotPassword::newFromUser( $user, $form['user'] );
-			return $bot->save( 'update', self::getNewPassword( $bot ) )
+		} elseif ( isset( $form['takeOverUser'] ) && $form['takeOverUser'] ) {
+			list( $bot, $pass ) = self::getBotPass( $user, $form['user'] );
+			return $bot->save( 'update', $pass )
 				?? 'mabs-failure-updating-password';
 		} elseif ( isset( $form['takeOverUser'] ) ) {
-			return 'mabs-failuere-takeover-needed';
+			return 'mabs-failure-takeover-needed';
 		} elseif ( $form['continue'] ) {
 			return true;
 		}
