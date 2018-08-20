@@ -44,7 +44,7 @@ class MABS extends SpecialPage {
 	 * @param string|null $page short name for this page class
 	 */
 	public function __construct( $page = null ) {
-		parent::__construct( 'mabs' );
+		parent::__construct( 'mabs', 'import'  );
 		$this->page = $page;
 	}
 
@@ -82,7 +82,7 @@ class MABS extends SpecialPage {
 			$extDir = MediaWikiServices::getInstance()->getMainConfig()->get( "ExtensionDirectory" );
 			self::$git->setEnvVar( "PERL5LIB", "$extDir/MABS/lib/mediawiki-git-remote/lib:"
 							 . "$extDir/MABS/lib/mediawiki-git-remote/localcpan" );
-			self::$git->setEnvVar( "GIT_EXEC_PATH", "$extDir/MABS/lib/mediawiki-git-remote" );
+			self::$git->setEnvVar( "GIT_EXEC_PATH", "$extDir/MABS/lib/mediawiki-git-remote:/usr/lib/git-core" );
 			self::$git->setEnvVar( "GIT_MW_DEBUG", "1" );
 			self::$git->setEnvVar( "GIT_TRACE", "0" );
 			if ( !chdir( $dir ) ) {
@@ -95,14 +95,15 @@ class MABS extends SpecialPage {
 	/**
 	 * Show the page to the user
 	 *
-	 * @param string $sub The subpage string argument (if any).
+	 * @param string|null $subPage The subpage string argument (if any).
 	 */
-	public function execute( $sub ) {
+	public function execute( $subPage ) {
+		parent::execute( $subPage );
 		$out = $this->getOutput();
 		$this->page = "setup";
 
-		if ( $sub ) {
-			$this->page = strtolower( $sub );
+		if ( $subPage ) {
+			$this->page = strtolower( $subPage );
 		}
 
 		$title = $this->msg( "mabs-{$this->page}-title" );
