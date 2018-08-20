@@ -24,11 +24,10 @@
 namespace MediaWiki\Extension\MABS\Special\MABS;
 
 use BotPassword;
-use ErrorPageError;
 use FauxRequest;
-use GitWrapper\GitWrapper;
 use GitWrapper\GitException;
 use HTMLForm;
+use MWException;
 use MWHttpRequest;
 use MediaWiki\Extension\MABS\Config;
 use MediaWiki\Extension\MABS\Special\MABS;
@@ -40,7 +39,7 @@ use User;
 
 class Import extends MABS {
 	protected $steps = [
-		'verify', 'setuser', 'setremote', 'fetch', 'push'
+		'verify', 'setuser', 'setremote', 'fetch'
 	];
 
 	/**
@@ -74,17 +73,16 @@ class Import extends MABS {
 	}
 
 	private static function getFullURL() {
-        $conf = MediaWikiServices::getInstance()->getMainConfig();
+		$conf = MediaWikiServices::getInstance()->getMainConfig();
 		return $conf->get( "Server" ) . $conf->get( "ScriptPath" ) . "/api.php";
 	}
 
 	/**
 	 * Handle setting up the remote and importing
 	 *
-	 * @param array $form data from the post
 	 * @return string|null
 	 */
-	public static function startOver( array $form ) {
+	public static function startOver() {
 		$context = RequestContext::getMain();
 		$context->getOutput()->redirect( self::getTitleFor( "MABS" )->getFullUrl() );
 	}
@@ -147,9 +145,9 @@ class Import extends MABS {
 	public static function setRemote( array $form ) {
 		$git = self::getGitWrapper();
 
-        if ( substr( $form['remote'], 0, 11 ) !== "mediawiki::" ) {
-            throw new MWException( wfMessage( "mabs-not-an-actual-destination" ) );
-        }
+		if ( substr( $form['remote'], 0, 11 ) !== "mediawiki::" ) {
+			throw new MWException( wfMessage( "mabs-not-an-actual-destination" ) );
+		}
 		$remote = substr( $form['remote'], 11 );
 		$req = MWHttpRequest::factory(
 			$remote,
@@ -158,8 +156,7 @@ class Import extends MABS {
 		);
 		$status = $req->execute();
 		if ( !$status->isOK() ) {
-			$msg = Status::newFatal( "mabs-config-cannot-reach-self", $status->getMessage() );
-			return $msg->getErrorsArray();
+			return Status::newFatal( "mabs-config-cannot-reach-self", $status->getMessage() );
 		}
 
 		$req = MWHttpRequest::factory(
@@ -171,32 +168,32 @@ class Import extends MABS {
 		);
 		$status = $req->execute();
 		if ( !$status->isGood() ) {
-			$msg = Status::newFatal( "mabs-config-bad-response-status", $status->getMessage() );
-			return $msg->getErrorsArray();
+			return Status::newFatal( "mabs-config-bad-response-status", $status->getMessage() );
 		}
 
 		$resp = json_decode( $req->getContent() );
 		if ( $resp === null ) {
-			$msg = Status::newFatal( "mabs-config-invalid-json-response", json_last_error_msg() );
-			return $msg->getErrorsArray();
+			return Status::newFatal( "mabs-config-invalid-json-response", json_last_error_msg() );
+
 		}
 
 		$sitename = MediaWikiServices::getInstance()->getMainConfig()->get( "Sitename" );
 		if ( !(
 			isset( $resp->query->general->sitename ) && $resp->query->general->sitename == $sitename
 		) ) {
-			$msg = Status::newFatal(
+			return Status::newFatal(
 				"mabs-config-sitename-mismatch", $resp->query->general->sitename, $sitename
 			);
-			return $msg->getErrorsArray();
 		}
 
-        $back = "";
+		$back = "";
 		try {
 			$back = $git->remote( "add", $form['name'], $form['remote'] );
-			if ( $back === "" ) {
-				return true;
+			// $back is an object, not a string
+			if ( $back == "" ) {
+				return Status::newGood();
 			}
+			$back = var_export( $back, true );
 		} catch ( GitException $e ) {
 			$back = $e->getMessage();
 		}
@@ -231,6 +228,22 @@ class Import extends MABS {
 	}
 
 	/**
+	 * Handle setting up the remote and importing
+	 *
+	 * @return string|null
+	 */
+	public static function doFetch() {
+		$git = self::getGitWrapper();
+
+		try {
+			$git->fetch();
+			return Status::newGood();
+		} catch ( GitException $e ) {
+			return Status::newFatal( "mabs-config-import-fetch-error", $e->getMessage() );
+		}
+	}
+
+	/**
 	 * Test the provided appId and password.
 	 *
 	 * @param string $user the user to use
@@ -238,10 +251,10 @@ class Import extends MABS {
 	 * @return Status
 	 */
 	private function loginCheck( $user, $pass ) {
-        if ( $user && $pass ) {
-            return BotPassword::login( $user, $pass, new FauxRequest );
-        }
-        return Status::newFatal( "mabs-login-failed", $user );
+		if ( $user && $pass ) {
+			return BotPassword::login( $user, $pass, new FauxRequest );
+		}
+		return Status::newFatal( "mabs-login-failed", $user );
 	}
 
 	/**
@@ -252,12 +265,12 @@ class Import extends MABS {
 	private static function getUserPass() {
 		$url = self::getFullUrl();
 		$git = self::getGitWrapper();
-        try {
-            return [ trim( (string)$git->config( "credential." . $url . ".username" ) ),
-                     trim( (string)$git->config( "credential." . $url . ".password" ) ) ];
-        } catch ( GitException $e ) {
-            return [ null, null ];
-        }
+		try {
+			return [ trim( (string)$git->config( "credential." . $url . ".username" ) ),
+					 trim( (string)$git->config( "credential." . $url . ".password" ) ) ];
+		} catch ( GitException $e ) {
+			return [ null, null ];
+		}
 	}
 
 	/**
@@ -269,10 +282,12 @@ class Import extends MABS {
 	protected static function setUserPass( BotPassword $bot, $pass ) {
 		$url = self::getFullUrl();
 		$git = self::getGitWrapper();
-        $user = User::newFromId( $bot->getUserCentralId() )->getName() . "@" . $bot->getAppID();
-        $git->config( "credential." . $url . ".username", $user );
+		$user = User::newFromId( $bot->getUserCentralId() )->getName()
+			  . "@" . $bot->getAppID();
+		$git->config( "credential." . $url . ".username", $user );
 		$git->config( "credential." . $url . ".password", $pass );
-		$git->config( "credential." . $url . ".domain", '' ); // FIXME not used yet
+		// FIXME not used yet
+		$git->config( "credential." . $url . ".domain", '' );
 	}
 
 	/**
@@ -292,13 +307,14 @@ class Import extends MABS {
 		list( $user, $pass ) = self::getUserPass();
 		$status = $this->loginCheck( $user, $pass );
 		if ( $status->isOk() ) {
-            return $form;
+			return $form;
 		# Do not try !== since $user is a GitWrapper object
 		} elseif ( $user != "" ) {
 			$form = [
 				"takeOverUser" => [
 					'section' => "mabs-config-$step-section",
-					'label' => wfMessage( 'mabs-config-reset-password', $user )->parse(),
+					'label' => wfMessage(
+						'mabs-config-reset-password', $user )->parse(),
 					'default' => false,
 					'type' => 'check',
 				],
@@ -313,8 +329,8 @@ class Import extends MABS {
 				'user' => [
 					'section' => "mabs-config-$step-section",
 					'default' => wfMessage( 'mabs-config-setup-user' )->parse(),
-                    'type' => 'info',
-                    'raw' => true
+					'type' => 'info',
+					'raw' => true
 				],
 				'fromScratch' => [
 					'type' => 'hidden',
@@ -339,7 +355,14 @@ class Import extends MABS {
 		return [ $pass, $passwordFactory->newFromPlainText( $pass ) ];
 	}
 
-	private static function getBotPass( user $user, $appId ) {
+	/**
+	 * Get a new the botpassword object and the plain text password
+	 *
+	 * @param User $user object
+	 * @param string $appId application id
+	 * @return string[]
+	 */
+	private static function getBotPass( User $user, $appId ) {
 		$bot = BotPassword::newFromUser( $user, $appId );
 		if ( $bot === null ) {
 			$bot = BotPassword::newUnsaved(
@@ -361,49 +384,36 @@ class Import extends MABS {
 		$context = RequestContext::getMain();
 		$user = $context->getUser();
 		if ( isset( $form['fromScratch'] ) && $form['fromScratch'] ) {
-			$bot = BotPassword::newUnsaved(
-				[ 'user' => $user, 'appId' => $form['fromScratch'], 'grants' => [ 'mabs' ] ]
+			$bot = BotPassword::newUnsaved( [
+				'user' => $user, 'appId' => $form['fromScratch'],
+				'grants' => [ 'mabs' ]
+			] );
+			list( $bot, $crypt ) = self::getBotPass(
+				$user, $form['fromScratch']
 			);
-			list( $bot, $crypt ) = self::getBotPass( $user, $form['fromScratch'] );
-			return $bot->save( 'insert', $crypt )
-				?? 'mabs-failure-saving-user';
-		} elseif ( isset( $form['takeOverUser'] ) && $form['takeOverUser'] ) {
-            list( $bot, $crypt ) = self::getBotPass( $user, $form['user'] );
+			if ( ! $bot->save( 'insert', $crypt ) ) {
+				return $bot->save( 'update', $crypt ) ?? 'mabs-failure-saving-user';
+			}
+			return Status::newGood();
+		} elseif (
+			isset( $form['takeOverUser'] ) && $form['takeOverUser']
+		) {
+			list( $bot, $crypt ) = self::getBotPass( $user, $form['user'] );
 			return $bot->save( 'update', $crypt )
-              ?? 'mabs-failure-updating-password';
+			  ?? 'mabs-failure-updating-password';
 		} elseif ( isset( $form['takeOverUser'] ) ) {
 			return 'mabs-failure-takeover-needed';
 		} elseif ( $form['continue'] ) {
-			return true;
+			return Status::newGood();
 		}
 		return 'mabs-not-an-actual-destination';
 	}
 
 	/**
-	 * Set up a push
-	 *
-	 * @param string $step that we're on
-	 * @param string &$submit button text
-	 * @param callable &$callback to handle any form input
-	 * @return HTMLForm|null
+	 * Import is done, go to the Export bit
+	 * @return Title
 	 */
-	protected function handlePush( $step, &$submit, &$callback ) {
-		var_dump($step);exit;
-	}
-
-	/**
-	 * Handle setting up the remote and importing
-	 *
-	 * @param array $form data from the post
-	 * @return string|null
-	 */
-	public static function doFetch( array $form ) {
-		$git = self::getGitWrapper();
-
-		try {
-			return $git->fetch();
-		} catch ( GitException $e ) {
-			return Status::newFatal( "mabs-config-import-fetch-error", $e->getMessage() );
-		}
+	protected function getNextPage() {
+		return self::getTitleFor( "MABS", "Export" );
 	}
 }

@@ -44,7 +44,7 @@ class MABS extends SpecialPage {
 	 * @param string|null $page short name for this page class
 	 */
 	public function __construct( $page = null ) {
-		parent::__construct( 'mabs', 'import'  );
+		parent::__construct( 'mabs', 'import' );
 		$this->page = $page;
 	}
 
@@ -81,8 +81,9 @@ class MABS extends SpecialPage {
 
 			$extDir = MediaWikiServices::getInstance()->getMainConfig()->get( "ExtensionDirectory" );
 			self::$git->setEnvVar( "PERL5LIB", "$extDir/MABS/lib/mediawiki-git-remote/lib:"
-							 . "$extDir/MABS/lib/mediawiki-git-remote/localcpan" );
-			self::$git->setEnvVar( "GIT_EXEC_PATH", "$extDir/MABS/lib/mediawiki-git-remote:/usr/lib/git-core" );
+								   . "$extDir/MABS/lib/mediawiki-git-remote/localcpan" );
+			self::$git->setEnvVar( "GIT_EXEC_PATH", "$extDir/MABS/lib/mediawiki-git-remote:"
+								   . "/usr/lib/git-core" );
 			self::$git->setEnvVar( "GIT_MW_DEBUG", "1" );
 			self::$git->setEnvVar( "GIT_TRACE", "0" );
 			if ( !chdir( $dir ) ) {
@@ -190,6 +191,7 @@ class MABS extends SpecialPage {
 
 	private function doStep( &$step ) {
 		$submit = wfMessage( "mabs-config-try-again" )->parse();
+		$callback = [ __CLASS__, 'trySubmit' ];
 
 		if ( !method_exists( $this->pageClass, "handle$step" ) ) {
 			throw new ErrorPageError(
@@ -219,12 +221,22 @@ class MABS extends SpecialPage {
 	}
 
 	/**
+	 * Empty (for now, at least) submit handler to go to the next step.
+	 *
+	 */
+	public static function trySubmit() {
+	}
+
+	/**
 	 * Get the next page to go to
 	 *
+	 * @param string $step that we're on
 	 * @return Title
 	 */
-	protected function getNextPage() {
-		throw new \Exception( "blah!" );
+	protected function getNextPage( $step ) {
+		throw new ErrorPageError(
+			"mabs-wizard-no-next-page", "mabs-dev-needed-next-page", [ $step, $this->page ]
+		);
 	}
 
 	/**
@@ -249,6 +261,6 @@ class MABS extends SpecialPage {
 			return;
 		}
 		$out = RequestContext::getMain()->getOutput();
-		$out->redirect( $this->getNextPage()->getFullUrl() );
+		$out->redirect( $this->getNextPage( $step )->getFullUrl() );
 	}
 }

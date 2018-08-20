@@ -28,7 +28,6 @@ use HTMLForm;
 use Mediawiki\MediaWikiServices;
 use MediaWiki\Extension\MABS\Config;
 use MediaWiki\Extension\MABS\Special\MABS;
-use RequestContext;
 use Status;
 use Wikimedia;
 
@@ -42,14 +41,11 @@ class Setup extends MABS {
 	 * Look for any mfissing software dependencies.  Some duplication here.
 	 *
 	 * @param string $step that we're on
-	 * @param string &$submit button text
-	 * @param callable &$callback to handle any form input
 	 * @return HTMLForm|null
 	 */
-	protected function handleDependency( $step, &$submit, &$callback ) {
+	protected function handleDependency( $step ) {
 		$msg = false;
 		$form = null;
-		$callback = [ __CLASS__, 'trySubmit' ];
 
 		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
 		self::$writable = $config->get( Config::REPO );
@@ -91,15 +87,11 @@ class Setup extends MABS {
 	 * Tell the user to create a writable directory
 	 *
 	 * @param string $step that we're on
-	 * @param string &$submit button text
-	 * @param callable &$callback to handle any form input
 	 * @return HTMLForm|null
 	 */
-	protected function handlePrepare( $step, &$submit, &$callback ) {
+	protected function handlePrepare( $step ) {
 		$msg = false;
 		$form = null;
-		$submit = wfMessage( "mabs-config-try-again" )->parse();
-		$callback = [ __CLASS__, 'trySubmit' ];
 
 		// FIXME: handle $wgEnableAPI and $wgEnableWriteAPI
 
@@ -178,21 +170,11 @@ class Setup extends MABS {
 	}
 
 	/**
-	 * Empty (for now, at least) submit handler to go to the next step.
-	 *
-	 * @param array $formData data from submission
-	 * @return bool|string
-	 */
-	public static function trySubmit( array $formData ) {
-	}
-
-	/**
 	 * Everything has been checked, do the initialization
 	 *
-	 * @param array $formData data from submission
 	 * @return bool|string
 	 */
-	public static function initRepo( array $formData ) {
+	public static function initRepo() {
 		try {
 			$wrapper = new GitWrapper;
 			$wrapper->init( self::$writable, [ 'bare' => true ] );
@@ -206,8 +188,7 @@ class Setup extends MABS {
 	 * Initialization is done, go to the synchronisation bit
 	 * @return Title
 	 */
-    protected function getNextPage() {
-        return self::getTitleFor( "MABS", "Import" );
-    }
+	protected function getNextPage() {
+		return self::getTitleFor( "MABS", "Import" );
+	}
 }
-
