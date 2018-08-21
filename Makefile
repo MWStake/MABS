@@ -3,21 +3,21 @@
 # http://unix.stackexchange.com/questions/217295/phony-all-rules-in-gnu-make-file
 
 .DEFAULT_GOAL := help
-
+stripColor='s,\x1B\[[234][a-f0-9]\?m,,g'
 .PHONY: install
-install: _npm _composer  ## Updates PHP / JS dependencies
-	@npm install
+install: _npm _composer ## Updates PHP / JS dependencies
+	@npm install 2>&1 | sed ${stripColor}
 	@composer install
 
 .PHONY: update
 update: _npm _composer ## Updates PHP / JS dependencies (writes composer.lock)
-	@npm update
+	@npm update 2>&1 | sed ${stripColor}
 	@composer update
 
 # See https://www.mediawiki.org/wiki/Continuous_integration/Entry_points
 .PHONY: test
 test: _npm _composer ## Runs tests (see composer.json / Gruntfile.js)
-	@npm test
+	@npm test 2>&1 | sed ${stripColor}
 	@composer test
 
 .PHONY: fix

@@ -16,6 +16,14 @@
 	"ExtensionMessagesFiles": {
 		"MABSAlias": "src/i18n/Alias.php"
 	},
+	"GrantPermissions": {
+		"mabs": {
+			"import": true
+		}
+	},
+	"GrantPermissionsGroups": {
+		"sysop": "mabs"
+	},
 	"Hooks": {
 	},
 	"MessagesDirs": {
@@ -50,7 +58,7 @@
 	},
 	"config_prefix": "MABS",
 	"config": {
-		"repo": {
+		"Repo": {
 			"descriptionmsg": "mabs-repo-depo",
 			"path": true,
 			"value": "repo"
