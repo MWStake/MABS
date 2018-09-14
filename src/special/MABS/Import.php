@@ -78,7 +78,7 @@ class Import extends MABS {
 	}
 
 	/**
-	 * Handle setting up the remote and importing
+	 * Go back to the beginning.
 	 *
 	 * @return string|null
 	 */

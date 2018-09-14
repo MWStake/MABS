@@ -72,5 +72,19 @@
 	"mabs-config-reset-password": "Use the current user ($1), but reset the password",
 	"mabs-failure-takeover-needed": "The stored password on disk must match the password in BotPasswords",
 	"mabs-config-set-user": "Setup user",
-	"mabs-not-an-actual-destination": "Something strange has happened"
+	"mabs-not-an-actual-destination": "Something strange has happened",
+
+	"mabs-export-title": "Export the current wiki",
+	"mabs-export-intro": "Here is where we set up the export",
+
+	"repoform-mabs-config-export-verify-section": "Import not done",
+	"mabs-config-import-not-done": "The repository is empty.  Please import this wiki first.",
+
+	"repoform-mabs-config-export-push-section": "Where to push to",
+	"mabs-config-export-remote-url": "URL that we'll push to.  If this is a MediaWiki instance, preface it with <tt>mediawiki::</tt>.",
+	"mabs-config-export-username": "Username (if needed)",
+	"mabs-config-export-password": "Password (if needed)",
+	"mabs-config-export-other-branch": "The branch name for the other wiki",
+	"mabs-config-export-remote-needed": "Please enter a valid remote",
+	"mabs-config-export-push": "Push it"
 }
