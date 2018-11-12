@@ -51,8 +51,7 @@
 	"mabs-config-start-over": "The repository still needs to be configured",
 
 	"mabs-import-title": "Import the current wiki",
-	"mabs-import-intro": "During this process the current wiki will be imported.  First, a custom wiki remote ([https://github.com/hexmode/mediawiki-git-remote git-remote-mediawiki]) is set up, connectivity is tested, and the import is performed.",
-
+	"mabs-import-intro": "During this process the current wiki will be imported.  \n# A custom wiki remote is set up. ([https://github.com/hexmode/mediawiki-git-remote git-remote-mediawiki])\n# A wiki user that will handle the imports is created\n# Connectivity is tested\n# The import is performed.",
 	"repoform-mabs-config-import-setremote-section": "Set the default remote",
 	"mabs-config-remote": "This wiki is the remote for the repository we are setting up",
 	"mabs-config-add-remote-error": "Problem setting remote: $1",
