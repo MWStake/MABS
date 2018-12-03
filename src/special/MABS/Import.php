@@ -25,6 +25,7 @@ namespace MediaWiki\Extension\MABS\Special\MABS;
 
 use BotPassword;
 use FauxRequest;
+use GitWrapper\GitException;
 use HTMLForm;
 use MWHttpRequest;
 use Mediawiki\MediaWikiServices;
@@ -170,8 +171,15 @@ class Import extends MABS {
 	protected function getUserPass() {
 		$url = $this->getFullUrl();
 		$git = self::getGit();
-		return [ trim( (string)$git->config( "credential." . $url . ".username" ) ),
-				 trim( (string)$git->config( "credential." . $url . ".password" ) ) ];
+		$creds = [];
+
+		try {
+			$creds = [ trim( (string)$git->config( "credential." . $url . ".username" ) ),
+					   trim( (string)$git->config( "credential." . $url . ".password" ) ) ];
+		} catch ( GitException $e ) {
+			echo "oops: <pre>{$e->getMessage()}</pre>\n";exit;
+		}
+		return $creds;
 	}
 
 	/**
