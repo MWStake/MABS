@@ -172,12 +172,11 @@ class Import extends MABS {
 		$url = $this->getFullUrl();
 		$git = self::getGit();
 		$creds = [];
-
 		try {
 			$creds = [ trim( (string)$git->config( "credential." . $url . ".username" ) ),
 					   trim( (string)$git->config( "credential." . $url . ".password" ) ) ];
 		} catch ( GitException $e ) {
-			echo "oops: <pre>{$e->getMessage()}</pre>\n";exit;
+			// Creds aren't set
 		}
 		return $creds;
 	}
@@ -209,13 +208,31 @@ class Import extends MABS {
 		$callback = [ __CLASS__, 'setUser' ];
 		$submit = wfMessage( 'mabs-config-set-user' )->parse();
 		$appId = "mabs";
+		$cred = $this->getUserPass();
+		$status = null;
 
-		list( $user, $pass ) = $this->getUserPass();
-		$status = $this->loginCheck( $user, $pass );
-		if ( $status->isOk() ) {
+		if ( $cred ) {
+			list( $user, $pass ) = $cred;
+			$status = $this->loginCheck( $user, $pass );
+		}
+		if ( $status === null || $user === null ) {
+			$form = [
+				'user' => [
+					'type' => 'info',
+					'section' => "mabs-config-$step-section",
+					'label' => wfMessage( 'mabs-config-setup-user' )->parse(),
+					'readonly' => true,
+				],
+				'fromScratch' => [
+					'type' => 'hidden',
+					'default' => $appId
+				],
+			];
+			$user = 
+			$this->setUserPass( null, null );
+		} elseif ( $status->isOk() ) {
 			$form = null;
-		# Do not try !== since $user is a GitWrapper object
-		} elseif ( $user != "" ) {
+		} else {
 			$form = [
 				"takeOverUser" => [
 					'section' => "mabs-config-$step-section",
@@ -226,19 +243,6 @@ class Import extends MABS {
 				'user' => [
 					'type' => 'hidden',
 					'default' => $user
-				],
-			];
-		# Do not try === since these are GitWrapper objects
-		} elseif ( $user == "" && $pass == "" ) {
-			$form = [
-				'user' => [
-					'section' => "mabs-config-$step-section",
-					'label' => wfMessage( 'mabs-config-setup-user' )->parse(),
-					'readonly' => true,
-				],
-				'fromScratch' => [
-					'type' => 'hidden',
-					'default' => $appId
 				],
 			];
 		}

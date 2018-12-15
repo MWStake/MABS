@@ -40,7 +40,7 @@ class MABS extends SpecialPage {
 	 * @param string|null $page short name for this page class
 	 */
 	public function __construct( $page = null ) {
-		parent::__construct( 'mabs' );
+		parent::__construct( 'mabs', 'mabs' );
 		$this->page = $page;
 	}
 
@@ -78,6 +78,7 @@ class MABS extends SpecialPage {
 	 * @param string $sub The subpage string argument (if any).
 	 */
 	public function execute( $sub ) {
+		$this->checkPermissions();
 		$out = $this->getOutput();
 		$out->setPageTitle( $this->msg( 'mabs-setup' ) );
 		$out->addWikiMsg( 'mabs-setup-intro' );

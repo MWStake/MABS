@@ -16,6 +16,17 @@
 	"ExtensionMessagesFiles": {
 		"MABSAlias": "src/i18n/Alias.php"
 	},
+	"AvailableRights": [
+		"mabs"
+	],
+	"GroupPermissions": {
+		"*": {
+			"mabs": false
+		},
+		"sysop": {
+			"mabs": true
+		}
+	},
 	"GrantPermissions": {
 		"mabs": {
 			"import": true
