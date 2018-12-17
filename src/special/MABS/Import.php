@@ -51,14 +51,15 @@ class Import extends MABS {
 	 */
 	protected function handleVerify( $step, &$submit, &$callback ) {
 		$form = [];
-		$config = MediaWikiServices::getInstance()->getConfigFactory()->makeConfig( "MABS" );
+		$config = MediaWikiServices::getInstance()
+				->getConfigFactory()->makeConfig( "MABS" );
 		self::$gitDir = $config->get( Config::REPO );
 
-		if (
-			!( file_exists( self::$gitDir )
-			   && is_dir( self::$gitDir )
-			   && file_exists( self::$gitDir . "/config" ) )
-		) {
+		if ( !(
+			file_exists( self::$gitDir )
+			&& is_dir( self::$gitDir )
+			&& file_exists( self::$gitDir . "/config" )
+		) ) {
 			$callback = [ __CLASS__, 'startOver' ];
 			$submit = wfMessage( 'mabs-config-try-again' )->parse();
 			$form = [
@@ -71,13 +72,15 @@ class Import extends MABS {
 		return $form;
 	}
 
-	private function getFullURL() {
-		return $this->getConfig()->get( "Server" )
-			. $this->getConfig()->get( "ScriptPath" ) . "/api.php";
+	private static function getFullURL() {
+		$context = RequestContext::getMain();
+		return $context->getConfig()->get( "Server" )
+			. $context->getConfig()->get( "ScriptPath" ) . "/api.php";
 	}
 
 	/**
-	 * Look for any missing software dependencies.  Some duplication with composer here.
+	 * Look for any missing software dependencies.  Some duplication
+	 * with composer here.
 	 *
 	 * @param string $step that we're on
 	 * @param string &$submit button text
@@ -89,7 +92,7 @@ class Import extends MABS {
 		$callback = [ __CLASS__, 'setRemote' ];
 		$submit = wfMessage( 'mabs-config-set-remote' )->parse();
 		$git = self::getGit();
-		$url = $this->getFullUrl();
+		$url = self::getFullUrl();
 
 		$remotes = $git->remote( "-v" );
 		$lines = explode( "\n", $remotes );
@@ -104,7 +107,6 @@ class Import extends MABS {
 			}, $lines );
 		}
 
-		$form = [];
 		if ( !(
 			isset( $remote['origin'] )
 			&& $remote['origin'] === "mediawiki::" . $url
@@ -140,12 +142,17 @@ class Import extends MABS {
 
 		$req = MWHttpRequest::factory(
 			$form['remote'],
-			[ 'method' => 'GET', 'timeout' => 'default', 'connectTimeout' => 'default' ],
+			[
+				'method' => 'GET', 'timeout' => 'default',
+				'connectTimeout' => 'default'
+			],
 			__METHOD__
 		);
 		$status = $req->execute();
 		if ( !$status->isOK() ) {
-			$msg = Status::newFatal( "mabs-config-cannot-reach-self", $status->getMessage() );
+			$msg = Status::newFatal(
+				"mabs-config-cannot-reach-self", $status->getMessage()
+			);
 			return $msg->getErrorsArray();
 		}
 
@@ -169,12 +176,14 @@ class Import extends MABS {
 	 * @return string[]
 	 */
 	protected function getUserPass() {
-		$url = $this->getFullUrl();
+		$url = self::getFullUrl();
 		$git = self::getGit();
 		$creds = [];
 		try {
-			$creds = [ trim( (string)$git->config( "credential." . $url . ".username" ) ),
-					   trim( (string)$git->config( "credential." . $url . ".password" ) ) ];
+			$creds = [
+				trim( (string)$git->config( "credential." . $url . ".username" ) ),
+				trim( (string)$git->config( "credential." . $url . ".password" ) )
+			];
 		} catch ( GitException $e ) {
 			// Creds aren't set
 		}
@@ -188,8 +197,8 @@ class Import extends MABS {
 	 * @param string $pass password
 	 * @return string[]
 	 */
-	protected function setUserPass( $user, $pass ) {
-		$url = $this->getFullUrl();
+	protected static function setUserPass( $user, $pass ) {
+		$url = self::getFullUrl();
 		$git = self::getGit();
 		$git->config( "credential." . $url . ".username", $user );
 		$git->config( "credential." . $url . ".password", $pass );
@@ -210,12 +219,33 @@ class Import extends MABS {
 		$appId = "mabs";
 		$cred = $this->getUserPass();
 		$status = null;
+		$takeoverForm = [
+				"takeOverUser" => [
+					'section' => "mabs-config-$step-section",
+					'label' => wfMessage(
+						'mabs-config-reset-password', $this->getUser()
+					)->parse(),
+					'default' => false,
+					'type' => 'check',
+				],
+				'appId' => [
+					'type' => 'hidden',
+					'default' => $appId
+				],
+				'user' => [
+					'type' => 'hidden',
+					'default' => $this->getUser()
+				],
+			];
 
 		if ( $cred ) {
 			list( $user, $pass ) = $cred;
 			$status = $this->loginCheck( $user, $pass );
+		} elseif ( BotPassword::newFromUser( $this->getUser(), $appId ) ) {
+			return $takeoverForm;
 		}
-		if ( $status === null || $user === null ) {
+
+		if ( $status === null ) {
 			$form = [
 				'user' => [
 					'type' => 'info',
@@ -225,28 +255,16 @@ class Import extends MABS {
 				],
 				'fromScratch' => [
 					'type' => 'hidden',
+					'default' => true
+				],
+				'appId' => [
+					'type' => 'hidden',
 					'default' => $appId
 				],
 			];
-			$user = 
-			$this->setUserPass( null, null );
-		} elseif ( $status->isOk() ) {
-			$form = null;
-		} else {
-			$form = [
-				"takeOverUser" => [
-					'section' => "mabs-config-$step-section",
-					'label' => wfMessage( 'mabs-config-reset-password', $user )->parse(),
-					'default' => false,
-					'type' => 'check',
-				],
-				'user' => [
-					'type' => 'hidden',
-					'default' => $user
-				],
-			];
+		} elseif ( !$status->isOk() ) {
+			return $takeoverForm;
 		}
-		return $form;
 	}
 
 	/**
@@ -260,8 +278,8 @@ class Import extends MABS {
 		$pass = $bot->generatePassword( $conf );
 		$passwordFactory = new PasswordFactory();
 		$passwordFactory->init( $conf );
-		$password = $passwordFactory->newFromPlaintext( $pass );
-		return $password;
+		$crypt = $passwordFactory->newFromPlaintext( $pass );
+		return [ 'plain' => $pass, 'crypt' => $crypt ];
 	}
 
 	private static function getBotPass( User $user, $appId ) {
@@ -271,7 +289,9 @@ class Import extends MABS {
 				[ 'user' => $user, 'appId' => $appId, 'grants' => [ 'mabs' ] ]
 			);
 		}
-		return [ $bot, self::getNewPassword( $bot ) ];
+		$pass = self::getNewPassword( $bot );
+		self::setUserPass( $user . '@' . $appId, $pass['plain'] );
+		return [ $bot, $pass['crypt'] ];
 	}
 
 	/**
@@ -284,16 +304,16 @@ class Import extends MABS {
 		$context = RequestContext::getMain();
 		$user = $context->getUser();
 		if ( isset( $form['fromScratch'] ) ) {
-			list( $bot, $pass ) = self::getBotPass( $user, $form['fromScratch'] );
+			list( $bot, $pass ) = self::getBotPass( $user, $form['appId'] );
 			return $bot->save( 'insert', $pass )
-				?? 'mabs-failure-saving-user';
+				?: Status::newFatal( 'mabs-failure-saving-user' );
 		} elseif ( isset( $form['takeOverUser'] ) && $form['takeOverUser'] ) {
-			list( $bot, $pass ) = self::getBotPass( $user, $form['user'] );
+			list( $bot, $pass ) = self::getBotPass( $user, $form['appId'] );
 			return $bot->save( 'update', $pass )
-				?? 'mabs-failure-updating-password';
+				?: Status::newFatal( 'mabs-failure-updating-password' );
 		} elseif ( isset( $form['takeOverUser'] ) ) {
-			return 'mabs-failure-takeover-needed';
-		} elseif ( $form['continue'] ) {
+			return Status::newFatal( 'mabs-failure-takeover-needed' );
+		} else {
 			return true;
 		}
 		return 'mabs-not-an-actual-destination';
@@ -308,6 +328,7 @@ class Import extends MABS {
 	 * @return HTMLForm|null
 	 */
 	protected function handlePush( $step, &$submit, &$callback ) {
+		echo __METHOD__;exit;
 		var_dump($step);exit;
 	}
 
@@ -319,6 +340,8 @@ class Import extends MABS {
 	 */
 	public static function startOver( array $form ) {
 		$context = RequestContext::getMain();
-		$context->getOutput()->redirect( self::getTitleFor( "MABS" )->getFullUrl() );
+		$context->getOutput()->redirect(
+			self::getTitleFor( "MABS" )->getFullUrl()
+		);
 	}
 }

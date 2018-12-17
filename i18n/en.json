@@ -7,7 +7,7 @@
 	"mabs-setup": "Set up MABS!",
 	"mabs-setup-intro": "Welcome to the MABS configuration page.\n\nTo set up MABS, you need to make sure the repository directory exists and is writable by the webserver.  To change the repository directory, set <tt>$MABSRepo</tt> in your <tt>LocalSettings.php</tt> file",
 	"mabs": "Wiki synchronisation",
-	"action-mabs": "Manage wiki synchronisation",
+	"action-mabs": "manage wiki synchronisation",
 	"mabs-repoform-branchname": "Branch name",
 	"mabs-repo-depo": "Path relateive to the wiki-root to the MABS repository",
 
@@ -53,6 +53,9 @@
 	"repoform-mabs-config-import-setuser-section": "Set up the MABS user",
 	"mabs-config-setup-user": "Setting up user",
 	"mabs-config-reset-password": "Reset password and use this user",
-	"mabs-failure-takeover-needed": "The password must be reset so that we can use it."
+	"mabs-failure-takeover-needed": "The password must be reset so that we can use it.",
+	"mabs-failure-saving-user": "Problem creating the user",
+	"mabs-failure-updating-password": "The password couldn't be updated!",
+	"mabs-config-set-user": "Continue"
 
 }
