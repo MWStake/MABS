@@ -25,13 +25,14 @@ namespace MediaWiki\Extension\MABS\Special\MABS;
 
 use GitWrapper\GitWrapper;
 use HTMLForm;
-use Mediawiki\MediaWikiServices;
 use MediaWiki\Extension\MABS\Config;
 use MediaWiki\Extension\MABS\Special\MABS;
+use Mediawiki\MediaWikiServices;
 use Status;
 use Wikimedia;
 
 class Setup extends MABS {
+	// phpcs:ignore MediaWiki.Commenting.PropertyDocumentation.MissingDocumentationPrivate
 	private static $writable;
 	protected $steps = [
 		'dependency', 'prepare', 'initialize'
