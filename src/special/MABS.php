@@ -131,7 +131,7 @@ class MABS extends SpecialPage {
 	 * Get an object to handle this page
 	 *
 	 * @param string $page for the object
-	 * @return null|object
+	 * @return mixed
 	 */
 	public function fetchPageClass( $page ) {
 		$class = __CLASS__ . '\\' . ucFirst( $page );
@@ -189,8 +189,9 @@ class MABS extends SpecialPage {
 		}
 	}
 
+	// phpcs:ignore MediaWiki.Commenting.FunctionComment.MissingDocumentationPrivate
 	private function doStep( &$step ) {
-		$submit = wfMessage( "mabs-config-try-again" )->parse();
+		$submit = $this->msg( "mabs-config-try-again" )->parse();
 		$callback = [ __CLASS__, 'trySubmit' ];
 
 		if ( !method_exists( $this->pageClass, "handle$step" ) ) {

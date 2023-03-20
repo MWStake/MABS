@@ -27,11 +27,11 @@ use BotPassword;
 use FauxRequest;
 use GitWrapper\GitException;
 use HTMLForm;
-use MWException;
-use MWHttpRequest;
 use MediaWiki\Extension\MABS\Config;
 use MediaWiki\Extension\MABS\Special\MABS;
 use MediaWiki\MediaWikiServices;
+use MWException;
+use MWHttpRequest;
 use PasswordFactory;
 use RequestContext;
 use Status;
@@ -72,6 +72,9 @@ class Import extends MABS {
 		return $form;
 	}
 
+	/**
+	 * @return string
+	 */
 	private static function getFullURL() {
 		$conf = MediaWikiServices::getInstance()->getMainConfig();
 		return $conf->get( "Server" ) . $conf->get( "ScriptPath" ) . "/api.php";
@@ -106,7 +109,7 @@ class Import extends MABS {
 		$remote = [];
 		$lines = explode( "\n", $remotes );
 		if ( is_array( $lines ) && $lines[0] !== "" ) {
-			array_map( function ( $line ) use ( &$remote ) {
+			array_map( static function ( $line ) use ( &$remote ) {
 				// We don't differentiate (yet) between push and fetch
 				$part = preg_split( '/[\t ]/', $line );
 				if ( isset( $part[1] ) ) {
@@ -391,7 +394,7 @@ class Import extends MABS {
 			list( $bot, $crypt ) = self::getBotPass(
 				$user, $form['fromScratch']
 			);
-			if ( ! $bot->save( 'insert', $crypt ) ) {
+			if ( !$bot->save( 'insert', $crypt ) ) {
 				return $bot->save( 'update', $crypt ) ?? 'mabs-failure-saving-user';
 			}
 			return Status::newGood();

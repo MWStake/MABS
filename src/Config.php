@@ -26,6 +26,7 @@ use GlobalVarConfig;
 
 class Config extends GlobalVarConfig {
 
+	// phpcs:ignore PSR12.Properties.ConstantVisibility.NotFound
 	const REPO = 'Repo';
 
 	public function __construct() {
