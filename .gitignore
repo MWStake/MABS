@@ -4,5 +4,6 @@
 .#*
 /.project
 /composer.lock
+/.eslintcache
 /vendor
 /node_modules

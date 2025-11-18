@@ -1,7 +1,9 @@
 {
 	"name": "MABS",
 	"version": "0.1.0",
-	"author": ["Mark A. Hershberger"],
+	"author": [
+		"Mark A. Hershberger"
+	],
 	"url": "https://github.com/hexmode/mabs",
 	"descriptionmsg": "mabs-desc",
 	"license-name": "GPL v2",
@@ -24,15 +26,21 @@
 	},
 	"Hooks": {},
 	"MessagesDirs": {
-		"MABS": ["i18n"]
+		"MABS": [
+			"i18n"
+		]
 	},
 	"requires": {
 		"MediaWiki": ">= 1.31.0"
 	},
 	"ResourceModules": {
 		"ext.mabs": {
-			"scripts": ["modules/ext.mabs.js"],
-			"styles": ["modules/ext.mabs.css"],
+			"scripts": [
+				"modules/ext.mabs.js"
+			],
+			"styles": [
+				"modules/ext.mabs.css"
+			],
 			"messages": [],
 			"dependencies": []
 		}
